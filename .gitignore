@@ -1,0 +1,11 @@
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*-eps-converted-to.pdf
+*.pyc
+
+models/**/generator
+models/**/generator.d
+models/**/*_CODE
