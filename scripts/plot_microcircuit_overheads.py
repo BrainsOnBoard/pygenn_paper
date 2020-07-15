@@ -56,6 +56,9 @@ for i, t in enumerate(time_columns):
     legend_actors.append(bars[0])
     bar_offset += data[:,t]
 
+# Add real-time line
+axis.axhline(1000.0, color="black", linestyle="--")
+
 # Add device labels
 for x, t in zip(group_x, devices):
     axis.text(x, -6500.0, t, ha="center", fontsize=10)
@@ -73,6 +76,6 @@ axis.xaxis.grid(False)
 fig.legend(legend_actors, time_labels, ncol=len(time_labels), frameon=False, loc="lower center")
 
 plt.tight_layout(pad=0)
-#if not plot_settings.presentation:
-#    fig.savefig("../figures/microcircuit_overheads.pdf")
+if not plot_settings.presentation:
+    fig.savefig("../figures/microcircuit_overheads.pdf")
 plt.show()
