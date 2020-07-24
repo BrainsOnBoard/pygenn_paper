@@ -37,7 +37,7 @@ MEASURE_TIMING = True
 BUILD_MODEL = True
 
 # Total network size = SCALE * 11250 neurons
-SCALE = 1.0
+SCALE = 2.0
 
 # Number of excitatory neurons
 NUM_EXCITATORY = int(9000 * SCALE)
@@ -80,19 +80,19 @@ NU_EXT = NU_THRESH * 1.685
 # ----------------------------------------------------------------------------
 alpha_curr_model = genn_model.create_custom_postsynaptic_class(
     "alpha_curr",
-    
+
     param_names=["tau"],
     var_name_types=[("x", "scalar")],
     derived_params=[
-        ("ExpDecay", genn_model.create_dpf_class(lambda pars, dt: np.exp(-dt / pars[9]))()),
-        ("Init", genn_model.create_dpf_class(lambda pars, dt: np.exp(1) / pars[9])())],
+        ("ExpDecay", genn_model.create_dpf_class(lambda pars, dt: np.exp(-dt / pars[0]))()),
+        ("Init", genn_model.create_dpf_class(lambda pars, dt: np.exp(1) / pars[0])())],
 
     decay_code=
         """
         $(x) = (DT * $(ExpDecay) * $(inSyn) * $(Init)) + ($(ExpDecay) * $(x));
         $(inSyn)*=$(ExpDecay);
         """,
-    
+
     apply_input_code=
         """
         $(Isyn) += $(x);
@@ -100,14 +100,14 @@ alpha_curr_model = genn_model.create_custom_postsynaptic_class(
 
 poisson_alpha_model = genn_model.create_custom_current_source_class(
     "poisson_alpha",
-    
+
     param_names=["weight", "tauSyn", "rate"],
     var_name_types=[("current", "scalar"), ("current2", "scalar")],
     derived_params=[
         ("ExpDecay", genn_model.create_dpf_class(lambda pars, dt: np.exp(-dt / pars[1]))()),
         ("ExpMinusLambda", genn_model.create_dpf_class(lambda pars, dt: np.exp(-(pars[2] / 1000.0) * dt))()),
         ("Init", genn_model.create_dpf_class(lambda pars, dt: pars[0] * (np.exp(1) / pars[1]))())],
-        
+
     injection_code=
         """
         scalar p = 1.0f;
@@ -125,11 +125,11 @@ poisson_alpha_model = genn_model.create_custom_current_source_class(
 
 stdp_model = genn_model.create_custom_weight_update_class(
     "stdp",
-    
+
     param_names=["tauPlus", "tauMinus", "lambda", "alpha", "mu", "denDelay"],
     derived_params=[
         ("denDelayStep", genn_model.create_dpf_class(lambda pars, dt: np.floor(pars[5] / dt) - 1.0)())],
-    
+
     var_name_types=[("g", "scalar")],
     pre_var_name_types=[("preTrace", "scalar")],
     post_var_name_types=[("postTrace", "scalar")],
@@ -164,7 +164,7 @@ stdp_model = genn_model.create_custom_weight_update_class(
     post_spike_code=
         """
         scalar dt = $(t) - $(sT_post);
-        "$(postTrace) = ($(postTrace) * exp(-dt / $(tauMinus))) + 1.0;
+        $(postTrace) = ($(postTrace) * exp(-dt / $(tauMinus))) + 1.0;
         """,
 
     is_pre_spike_time_required=True,
