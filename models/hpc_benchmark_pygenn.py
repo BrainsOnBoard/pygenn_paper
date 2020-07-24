@@ -189,7 +189,7 @@ lif_params = {"C": C_M_PF / 1000.0,
               "Vthresh": V_THRESH,
               "Ioffset": 0.0, 
               "TauRefrac": 0.5}
-lif_init = {"V": genn_model.init_var("Normal", {"mean": 5.7, "sd": 7.2), 
+lif_init = {"V": genn_model.init_var("Normal", {"mean": 5.7, "sd": 7.2}), 
             "RefracTime": 0.0}
 
 # Poisson current source model parameters and initial state
@@ -233,8 +233,8 @@ stdp_synapse_post_init = {"postTrace": 0.0}
 exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_INDIVIDUALG", genn_wrapper.NO_DELAY,
     "Exc", "Exc",
     stdp_model, stdp_synapse_params, excitatory_synapse_init, stdp_synapse_pre_init, stdp_synapse_post_init,
-    alpha_curr_model, exp_curr_params, alpha_curr_init,
-    genn_model.init_connectivity("FixedNumberTotalWithReplacement", connect_params))
+    alpha_curr_model, alpha_curr_params, alpha_curr_init,
+    genn_model.init_connectivity("FixedProbabilityNoAutapse", {"prob": NUM_INCOMING_EXCITATORY / NUM_EXCITATORY}))
 
 # Configure dendritic delay and matching back propagation delay
 exc_exc_pop.pop.set_max_dendritic_delay_timesteps(DELAY_TIMESTEPS)
@@ -243,20 +243,20 @@ exc_exc_pop.pop.set_back_prop_delay_steps(DELAY_TIMESTEPS - 4);
 model.add_synapse_population("ExcInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
                              "Exc", "Inh",
                              "StaticPulse", {}, excitatory_synapse_init, {}, {},
-                             alpha_curr_model, exp_curr_params, alpha_curr_init,
-                             genn_model.init_connectivity("FixedNumberTotalWithReplacement", connect_params))
+                             alpha_curr_model, alpha_curr_params, alpha_curr_init,
+                             genn_model.init_connectivity("FixedProbability", {"prob": NUM_INCOMING_EXCITATORY / NUM_EXCITATORY}))
 
 model.add_synapse_population("InhInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
                              "Inh", "Inh",
                              "StaticPulse", {}, inhibitory_synapse_init, {}, {},
-                             alpha_curr_model, exp_curr_params, alpha_curr_init,
-                             genn_model.init_connectivity("FixedNumberTotalWithReplacement", connect_params))
+                             alpha_curr_model, alpha_curr_params, alpha_curr_init,
+                             genn_model.init_connectivity("FixedProbabilityNoAutapse", {"prob": NUM_INCOMING_INHIBITORY / NUM_INHIBITORY}))
 
 model.add_synapse_population("InhExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
                              "Inh", "Exc",
                              "StaticPulse", {}, inhibitory_synapse_init, {}, {},
-                             alpha_curr_model, exp_curr_params, alpha_curr_init,
-                             genn_model.init_connectivity("FixedNumberTotalWithReplacement", connect_params))
+                             alpha_curr_model, alpha_curr_params, alpha_curr_init,
+                             genn_model.init_connectivity("FixedProbability", {"prob": NUM_INCOMING_INHIBITORY / NUM_INHIBITORY}))
 
 if BUILD_MODEL:
     print("Building model")
