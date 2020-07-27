@@ -43,6 +43,9 @@ BUILD_MODEL = True
 # Should we use GeNN's built-in recording system
 USE_GENN_RECORDING = True
 
+# Should we turn on plasticity
+STATIC_SYNAPSES = True
+
 # Total network size = SCALE * 11250 neurons
 SCALE = 2.0
 
@@ -232,26 +235,34 @@ alpha_curr_init = {"x": 0.0}
 excitatory_synapse_init = {"g": SYNAPTIC_WEIGHT_PA / 1000.0 }
 inhibitory_synapse_init = {"g": -5.0 * SYNAPTIC_WEIGHT_PA / 1000.0 }
 
-# STDP model parameters
-stdp_synapse_params = {"tauPlus": 15.0, 
-                       "tauMinus": 15.0, 
-                       "lambda": 0.1, 
-                       "alpha": 0.0513,
-                       "mu": 0.4, 
-                       "denDelay": DELAY_MS}
-stdp_synapse_pre_init = {"preTrace": 0.0}
-stdp_synapse_post_init = {"postTrace": 0.0}
+if STATIC_SYNAPSES:
+    # Add synapse population
+    exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
+        "Exc", "Exc",
+        "StaticPulse", {}, excitatory_synapse_init, {}, {},
+        alpha_curr_model, alpha_curr_params, alpha_curr_init,
+        genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
+else:
+    # STDP model parameters
+    stdp_synapse_params = {"tauPlus": 15.0, 
+                           "tauMinus": 15.0, 
+                           "lambda": 0.1, 
+                           "alpha": 0.0513,
+                           "mu": 0.4, 
+                           "denDelay": DELAY_MS}
+    stdp_synapse_pre_init = {"preTrace": 0.0}
+    stdp_synapse_post_init = {"postTrace": 0.0}
 
-# Add synapse population
-exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_INDIVIDUALG", genn_wrapper.NO_DELAY,
-    "Exc", "Exc",
-    stdp_model, stdp_synapse_params, excitatory_synapse_init, stdp_synapse_pre_init, stdp_synapse_post_init,
-    alpha_curr_model, alpha_curr_params, alpha_curr_init,
-    genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
+    # Add synapse population
+    exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_INDIVIDUALG", genn_wrapper.NO_DELAY,
+        "Exc", "Exc",
+        stdp_model, stdp_synapse_params, excitatory_synapse_init, stdp_synapse_pre_init, stdp_synapse_post_init,
+        alpha_curr_model, alpha_curr_params, alpha_curr_init,
+        genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
 
-# Configure dendritic delay and matching back propagation delay
-exc_exc_pop.pop.set_max_dendritic_delay_timesteps(DELAY_TIMESTEPS)
-exc_exc_pop.pop.set_back_prop_delay_steps(DELAY_TIMESTEPS - 4);
+    # Configure dendritic delay and matching back propagation delay
+    exc_exc_pop.pop.set_max_dendritic_delay_timesteps(DELAY_TIMESTEPS)
+    exc_exc_pop.pop.set_back_prop_delay_steps(DELAY_TIMESTEPS - 4);
 
 model.add_synapse_population("ExcInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
                              "Exc", "Inh",
