@@ -38,7 +38,7 @@ DURATION_MS = 350.0
 MEASURE_TIMING = True
 
 # Should we rebuild the model rather than loading previous version
-BUILD_MODEL = False
+BUILD_MODEL = True
 
 # Should we use GeNN's built-in recording system
 USE_GENN_RECORDING = True
@@ -300,3 +300,19 @@ if MEASURE_TIMING:
     print("\tNeuron simulation:%f" % (1000.0 * model.neuron_update_time))
     print("\tPresynaptic update:%f" % (1000.0 * model.presynaptic_update_time))
     print("\tPostsynaptic update:%f" % (1000.0 * model.postsynaptic_update_time))
+
+
+# Get recording data
+spike_times, spike_ids = excitatory_pop.spike_recording_data
+
+fig, axes = plt.subplots(2)
+
+bin_size = 10.0
+rate_bins = np.arange(0, DURATION_MS, bin_size)
+rate = np.histogram(spike_times, bins=rate_bins)[0]
+rate_bin_centres = rate_bins[:-1] + (bin_size / 2.0)
+
+axes[0].scatter(spike_times, spike_ids, s=1)
+axes[1].plot(rate_bin_centres, rate * (1000.0 / bin_size) * (1.0 / float(NUM_EXCITATORY)))
+
+plt.show()
