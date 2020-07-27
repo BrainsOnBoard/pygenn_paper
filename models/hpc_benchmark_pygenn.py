@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pygenn import genn_model, genn_wrapper
 from scipy.special import lambertw
 from six import iteritems, itervalues
+from time import perf_counter
 
 # Using scipy to mimic the gsl_sf_lambert_Wm1 function.
 def lambert_wm1(x):
@@ -30,11 +31,17 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
 # Simulation timestep [ms]
 DT_MS = 0.1
 
+# Simulation duration [ms]
+DURATION_MS = 350.0
+
 # Should kernel timing be measured?
 MEASURE_TIMING = True
 
 # Should we rebuild the model rather than loading previous version
-BUILD_MODEL = True
+BUILD_MODEL = False
+
+# Should we use GeNN's built-in recording system
+USE_GENN_RECORDING = True
 
 # Total network size = SCALE * 11250 neurons
 SCALE = 2.0
@@ -203,6 +210,10 @@ poisson_init = {"current": 0.0,
 excitatory_pop = model.add_neuron_population("Exc", NUM_EXCITATORY, "LIF", lif_params, lif_init)
 inhibitory_pop = model.add_neuron_population("Inh", NUM_INHIBITORY, "LIF", lif_params, lif_init)
 
+# Enable spike recording
+excitatory_pop.spike_recording_enabled = USE_GENN_RECORDING
+inhibitory_pop.spike_recording_enabled = USE_GENN_RECORDING
+        
 # Add background current sources
 model.add_current_source("ExcPoisson", poisson_alpha_model, "Exc", poisson_params, poisson_init)
 model.add_current_source("InhPoisson", poisson_alpha_model, "Inh", poisson_params, poisson_init)
@@ -210,6 +221,8 @@ model.add_current_source("InhPoisson", poisson_alpha_model, "Inh", poisson_param
 # Set spike location so they can be accessed on host
 excitatory_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE)
 inhibitory_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE)
+
+print("Total num neurons: %u" % (NUM_EXCITATORY + NUM_INHIBITORY))
 
 # Alpha curr postsynaptic mode parameters and initial state
 alpha_curr_params = {"tau": TAU_SYN}
@@ -234,7 +247,7 @@ exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_INDIVIDUALG", genn_
     "Exc", "Exc",
     stdp_model, stdp_synapse_params, excitatory_synapse_init, stdp_synapse_pre_init, stdp_synapse_post_init,
     alpha_curr_model, alpha_curr_params, alpha_curr_init,
-    genn_model.init_connectivity("FixedProbabilityNoAutapse", {"prob": NUM_INCOMING_EXCITATORY / NUM_EXCITATORY}))
+    genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
 
 # Configure dendritic delay and matching back propagation delay
 exc_exc_pop.pop.set_max_dendritic_delay_timesteps(DELAY_TIMESTEPS)
@@ -244,24 +257,46 @@ model.add_synapse_population("ExcInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TI
                              "Exc", "Inh",
                              "StaticPulse", {}, excitatory_synapse_init, {}, {},
                              alpha_curr_model, alpha_curr_params, alpha_curr_init,
-                             genn_model.init_connectivity("FixedProbability", {"prob": NUM_INCOMING_EXCITATORY / NUM_EXCITATORY}))
+                             genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
 
 model.add_synapse_population("InhInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
                              "Inh", "Inh",
                              "StaticPulse", {}, inhibitory_synapse_init, {}, {},
                              alpha_curr_model, alpha_curr_params, alpha_curr_init,
-                             genn_model.init_connectivity("FixedProbabilityNoAutapse", {"prob": NUM_INCOMING_INHIBITORY / NUM_INHIBITORY}))
+                             genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_INHIBITORY}))
 
 model.add_synapse_population("InhExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
                              "Inh", "Exc",
                              "StaticPulse", {}, inhibitory_synapse_init, {}, {},
                              alpha_curr_model, alpha_curr_params, alpha_curr_init,
-                             genn_model.init_connectivity("FixedProbability", {"prob": NUM_INCOMING_INHIBITORY / NUM_INHIBITORY}))
+                             genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_INHIBITORY}))
 
 if BUILD_MODEL:
     print("Building model")
     model.build()
     
 print("Loading model")
-model.load()
+duration_timesteps = int(round(DURATION_MS / DT_MS))
+model.load(num_recording_timesteps=duration_timesteps)
 
+print("Simulating")
+sim_start_time = perf_counter()
+
+while model.t < DURATION_MS:
+    model.step_time()
+
+sim_end_time =  perf_counter()
+
+# Download recording data
+if USE_GENN_RECORDING:
+    model.pull_recording_buffers_from_device()
+
+print("Timing:")
+print("\tSimulation:%f" % ((sim_end_time - sim_start_time) * 1000.0))
+
+if MEASURE_TIMING:
+    print("\tInit:%f" % (1000.0 * model.init_time))
+    print("\tSparse init:%f" % (1000.0 * model.init_sparse_time))
+    print("\tNeuron simulation:%f" % (1000.0 * model.neuron_update_time))
+    print("\tPresynaptic update:%f" % (1000.0 * model.presynaptic_update_time))
+    print("\tPostsynaptic update:%f" % (1000.0 * model.postsynaptic_update_time))
