@@ -44,10 +44,10 @@ BUILD_MODEL = True
 USE_GENN_RECORDING = True
 
 # Should we turn on plasticity
-STATIC_SYNAPSES = True
+STATIC_SYNAPSES = False
 
 # Total network size = SCALE * 11250 neurons
-SCALE = 2.0
+SCALE = 3.0
 
 # Number of excitatory neurons
 NUM_EXCITATORY = int(9000 * SCALE)
@@ -222,8 +222,9 @@ model.add_current_source("ExcPoisson", poisson_alpha_model, "Exc", poisson_param
 model.add_current_source("InhPoisson", poisson_alpha_model, "Inh", poisson_params, poisson_init)
 
 # Set spike location so they can be accessed on host
-excitatory_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE)
-inhibitory_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE)
+if not USE_GENN_RECORDING:
+    excitatory_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE)
+    inhibitory_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE)
 
 print("Total num neurons: %u" % (NUM_EXCITATORY + NUM_INHIBITORY))
 
@@ -293,8 +294,19 @@ model.load(num_recording_timesteps=duration_timesteps)
 print("Simulating")
 sim_start_time = perf_counter()
 
+exc_spikes = []
+inh_spikes = []
 while model.t < DURATION_MS:
     model.step_time()
+    
+    if not USE_GENN_RECORDING:
+        # Download spikes
+        excitatory_pop.pull_current_spikes_from_device()
+        inhibitory_pop.pull_current_spikes_from_device()
+
+        # Add to data structure
+        exc_spikes.append(np.copy(excitatory_pop.current_spikes))
+        inh_spikes.append(np.copy(inhibitory_pop.current_spikes))
 
 sim_end_time =  perf_counter()
 
@@ -314,7 +326,12 @@ if MEASURE_TIMING:
 
 
 # Get recording data
-spike_times, spike_ids = excitatory_pop.spike_recording_data
+if USE_GENN_RECORDING:
+    spike_times, spike_ids = excitatory_pop.spike_recording_data
+else:
+    spike_ids = np.concatenate(exc_spikes)
+    spike_times = np.concatenate([np.ones_like(s) * i * DT_MS 
+                                  for i, s in enumerate(exc_spikes)])
 
 fig, axes = plt.subplots(2)
 
