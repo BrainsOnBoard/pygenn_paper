@@ -99,7 +99,7 @@ alpha_curr_model = genn_model.create_custom_postsynaptic_class(
 
     decay_code=
         """
-        $(x) = (DT * $(ExpDecay) * $(inSyn) * $(Init)) + ($(ExpDecay) * $(x));
+        $(x) = $(ExpDecay) * ((DT * $(inSyn) * $(Init)) + $(x));
         $(inSyn)*=$(ExpDecay);
         """,
 
@@ -247,7 +247,7 @@ else:
     # STDP model parameters
     stdp_synapse_params = {"tauPlus": 15.0, 
                            "tauMinus": 30.0, 
-                           "lambda": 0.1, 
+                           "lambda": 0.1 / 1000.0, 
                            "alpha": 0.0513,
                            "mu": 0.4, 
                            "denDelay": DELAY_MS}
