@@ -47,7 +47,7 @@ USE_GENN_RECORDING = True
 STATIC_SYNAPSES = False
 
 # Total network size = SCALE * 11250 neurons
-SCALE = 3.0
+SCALE = 1.0
 
 # Number of excitatory neurons
 NUM_EXCITATORY = int(9000 * SCALE)
@@ -238,7 +238,7 @@ inhibitory_synapse_init = {"g": -5.0 * SYNAPTIC_WEIGHT_PA / 1000.0 }
 
 if STATIC_SYNAPSES:
     # Add synapse population
-    exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
+    exc_exc_pop = model.add_synapse_population("ExcExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS - 1,
         "Exc", "Exc",
         "StaticPulse", {}, excitatory_synapse_init, {}, {},
         alpha_curr_model, alpha_curr_params, alpha_curr_init,
@@ -246,7 +246,7 @@ if STATIC_SYNAPSES:
 else:
     # STDP model parameters
     stdp_synapse_params = {"tauPlus": 15.0, 
-                           "tauMinus": 15.0, 
+                           "tauMinus": 30.0, 
                            "lambda": 0.1, 
                            "alpha": 0.0513,
                            "mu": 0.4, 
@@ -265,19 +265,19 @@ else:
     exc_exc_pop.pop.set_max_dendritic_delay_timesteps(DELAY_TIMESTEPS)
     exc_exc_pop.pop.set_back_prop_delay_steps(DELAY_TIMESTEPS - 4);
 
-model.add_synapse_population("ExcInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
+model.add_synapse_population("ExcInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS - 1,
                              "Exc", "Inh",
                              "StaticPulse", {}, excitatory_synapse_init, {}, {},
                              alpha_curr_model, alpha_curr_params, alpha_curr_init,
                              genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
 
-model.add_synapse_population("InhInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
+model.add_synapse_population("InhInh", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS - 1,
                              "Inh", "Inh",
                              "StaticPulse", {}, inhibitory_synapse_init, {}, {},
                              alpha_curr_model, alpha_curr_params, alpha_curr_init,
                              genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_INHIBITORY}))
 
-model.add_synapse_population("InhExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS,
+model.add_synapse_population("InhExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TIMESTEPS - 1,
                              "Inh", "Exc",
                              "StaticPulse", {}, inhibitory_synapse_init, {}, {},
                              alpha_curr_model, alpha_curr_params, alpha_curr_init,
@@ -333,14 +333,19 @@ else:
     spike_times = np.concatenate([np.ones_like(s) * i * DT_MS 
                                   for i, s in enumerate(exc_spikes)])
 
-fig, axes = plt.subplots(2)
+fig, axes = plt.subplots(2,sharex=True)
 
-bin_size = 10.0
+bin_size = 5.0
 rate_bins = np.arange(0, DURATION_MS, bin_size)
 rate = np.histogram(spike_times, bins=rate_bins)[0]
 rate_bin_centres = rate_bins[:-1] + (bin_size / 2.0)
 
 axes[0].scatter(spike_times, spike_ids, s=1)
-axes[1].plot(rate_bin_centres, rate * (1000.0 / bin_size) * (1.0 / float(NUM_EXCITATORY)))
+axes[1].bar(rate_bin_centres, 1000.0 * rate / (bin_size * NUM_EXCITATORY), width=bin_size) 
+
+axes[0].set_ylabel("Neuron ID")
+axes[1].set_xlim(50.0, DURATION_MS)
+axes[1].set_ylabel("Rate [Hz]")
+axes[1].set_xlabel("Time [ms]")
 
 plt.show()
