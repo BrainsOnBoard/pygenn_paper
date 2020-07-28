@@ -1,5 +1,6 @@
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
 
 from pygenn import genn_model, genn_wrapper
 from scipy.special import lambertw
@@ -24,7 +25,7 @@ def convert_synapse_weight(tau_m, tau_syn, C_m):
         (np.exp(-t_rise / tau_m) - np.exp(-t_rise / tau_syn)) /
         b - t_rise * np.exp(-t_rise / tau_syn))
     return 1. / v_max
-    
+
 # ----------------------------------------------------------------------------
 # Parameters
 # ----------------------------------------------------------------------------
@@ -47,7 +48,7 @@ USE_GENN_RECORDING = True
 STATIC_SYNAPSES = False
 
 # Total network size = SCALE * 11250 neurons
-SCALE = 1.0
+SCALE = 1.0 if len(sys.argv) == 1 else float(sys.argv[1])
 
 # Number of excitatory neurons
 NUM_EXCITATORY = int(9000 * SCALE)
@@ -126,7 +127,7 @@ poisson_alpha_model = genn_model.create_custom_current_source_class(
             numPoissonSpikes++;
             p *= $(gennrand_uniform);
         } while (p > $(ExpMinusLambda));
-        
+
         $(current) += $(Init) * (scalar)(numPoissonSpikes - 1);
         $(injectCurrent, $(current2));
         $(current2) = (DT * $(ExpDecay) * $(current)) + ($(ExpDecay) * $(current2));
@@ -192,21 +193,21 @@ model.default_var_location = genn_wrapper.VarLocation_DEVICE
 model.default_sparse_connectivity_location = genn_wrapper.VarLocation_DEVICE
 
 # LIF neuron model parameters and initial state
-lif_params = {"C": C_M_PF / 1000.0, 
-              "TauM": TAU_M, 
-              "Vrest": 0.0, 
-              "Vreset": 0.0, 
+lif_params = {"C": C_M_PF / 1000.0,
+              "TauM": TAU_M,
+              "Vrest": 0.0,
+              "Vreset": 0.0,
               "Vthresh": V_THRESH,
-              "Ioffset": 0.0, 
+              "Ioffset": 0.0,
               "TauRefrac": 0.5}
-lif_init = {"V": genn_model.init_var("Normal", {"mean": 5.7, "sd": 7.2}), 
+lif_init = {"V": genn_model.init_var("Normal", {"mean": 5.7, "sd": 7.2}),
             "RefracTime": 0.0}
 
 # Poisson current source model parameters and initial state
 poisson_params = {"weight": SYNAPTIC_WEIGHT_PA / 1000.0,
-                  "tauSyn": TAU_SYN, 
+                  "tauSyn": TAU_SYN,
                   "rate": NU_EXT * NUM_INCOMING_EXCITATORY * 1000.0}
-poisson_init = {"current": 0.0, 
+poisson_init = {"current": 0.0,
                 "current2": 0.0}
 
 # Create excitatory and inhibitory neuron populations
@@ -216,7 +217,7 @@ inhibitory_pop = model.add_neuron_population("Inh", NUM_INHIBITORY, "LIF", lif_p
 # Enable spike recording
 excitatory_pop.spike_recording_enabled = USE_GENN_RECORDING
 inhibitory_pop.spike_recording_enabled = USE_GENN_RECORDING
-        
+
 # Add background current sources
 model.add_current_source("ExcPoisson", poisson_alpha_model, "Exc", poisson_params, poisson_init)
 model.add_current_source("InhPoisson", poisson_alpha_model, "Inh", poisson_params, poisson_init)
@@ -245,11 +246,11 @@ if STATIC_SYNAPSES:
         genn_model.init_connectivity("FixedNumberPreWithReplacement", {"colLength": NUM_INCOMING_EXCITATORY}))
 else:
     # STDP model parameters
-    stdp_synapse_params = {"tauPlus": 15.0, 
-                           "tauMinus": 30.0, 
-                           "lambda": 0.1 / 1000.0, 
+    stdp_synapse_params = {"tauPlus": 15.0,
+                           "tauMinus": 30.0,
+                           "lambda": 0.1 / 1000.0,
                            "alpha": 0.0513,
-                           "mu": 0.4, 
+                           "mu": 0.4,
                            "denDelay": DELAY_MS}
     stdp_synapse_pre_init = {"preTrace": 0.0}
     stdp_synapse_post_init = {"postTrace": 0.0}
@@ -286,7 +287,7 @@ model.add_synapse_population("InhExc", "SPARSE_GLOBALG_INDIVIDUAL_PSM", DELAY_TI
 if BUILD_MODEL:
     print("Building model")
     model.build()
-    
+
 print("Loading model")
 duration_timesteps = int(round(DURATION_MS / DT_MS))
 model.load(num_recording_timesteps=duration_timesteps)
@@ -298,7 +299,7 @@ exc_spikes = []
 inh_spikes = []
 while model.t < DURATION_MS:
     model.step_time()
-    
+ 
     if not USE_GENN_RECORDING:
         # Download spikes
         excitatory_pop.pull_current_spikes_from_device()
@@ -330,7 +331,7 @@ if USE_GENN_RECORDING:
     spike_times, spike_ids = excitatory_pop.spike_recording_data
 else:
     spike_ids = np.concatenate(exc_spikes)
-    spike_times = np.concatenate([np.ones_like(s) * i * DT_MS 
+    spike_times = np.concatenate([np.ones_like(s) * i * DT_MS
                                   for i, s in enumerate(exc_spikes)])
 
 fig, axes = plt.subplots(2,sharex=True)
@@ -341,7 +342,7 @@ rate = np.histogram(spike_times, bins=rate_bins)[0]
 rate_bin_centres = rate_bins[:-1] + (bin_size / 2.0)
 
 axes[0].scatter(spike_times, spike_ids, s=1)
-axes[1].bar(rate_bin_centres, 1000.0 * rate / (bin_size * NUM_EXCITATORY), width=bin_size) 
+axes[1].bar(rate_bin_centres, 1000.0 * rate / (bin_size * NUM_EXCITATORY), width=bin_size)
 
 axes[0].set_ylabel("Neuron ID")
 axes[1].set_xlim(50.0, DURATION_MS)
