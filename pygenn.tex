@@ -161,7 +161,23 @@ int main()
 This second approach is key to the approach we use to implement PyGeNN.
 
 \subsection{SWIG}
-agaga
+In order to use GeNN from Python, both the model creation API and the \lstinline{SharedLibraryModel} functionality need to be `wrapped' so they can be called from Python.
+While this is possible using the API built into Python itself, a wrapper function would need to be manually implemented for each GeNN function to be exposed which would result in a lot of maintenance overhead.
+Instead, we chose to use SWIG~\citep{Beazley1996} to automatically generate wrapper functions and classes. 
+SWIG generates Python modules based on special interface files which can directly include C++ code as well as special `directives' which directly control SWIG:
+%
+\begin{lstlisting}[language=C++]
+%module(package="package") package
+%include "test.h" 
+\end{lstlisting}
+%
+where the \lstinline{%module} directive sets the name of the generated module and the package it will be located in and the \lstinline{%include} directive parses and automatically generates wrapper functions for a C++ header file.
+However, some compile-time C++ language features such as templates are not supported by Python.
+
+In order to make the wrapped code more `pythonic', we use SWIG to automatically apply steps such as renaming exported functions and methods from lowerCamelCase in C++ to underscore\_case in Python.
+However, even after applying such niceties, the resultant code would be unpleasant to use directly.
+For example, rather than being able to specify neuron parameters using a native Python data structure such as a list or dictionary, you have to use a wrapped type such as \lstinline{DoubleVector([0.25, 10.0, 0.0, 0.0, 20.0, 2.0, 0.5])}.
+
 
 \subsection{PyGeNN}
 agasg
@@ -185,6 +201,7 @@ while model.t < 100.0:
   pop.pull_var_from_device("V")
   print("%f, %f" % (model.t, v_pop)
 \end{lstlisting}
+
 \subsection{Cortical microcircuit model}
 sfasfas
 
@@ -207,7 +224,7 @@ As one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
 However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce GTX 1650 and Titan RTX respectively, it performs impressively.
 The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
 However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead').
-Because Python is an interpreted language, such operations are inherantly slower -- this is particularly noticable on devices with a slower CPU such as the Jetson Xavier NX.
+Because Python is an interpreted language, such operations are inherently slower -- this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
 When the spike recording system is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10.
 This now means that, on the high-end desktop GPU, this simulation now runs faster than real-time -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019}.
 
