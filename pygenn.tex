@@ -12,7 +12,7 @@
 %%%  NB logo1.jpg is required in the path in order to correctly compile front page header %%%
 
 \documentclass[utf8]{frontiersSCNS} % for Science, Engineering and Humanities and Social Sciences articles
-\usepackage{url,hyperref,lineno,microtype,subcaption}
+\usepackage{url,hyperref,lineno,listings,microtype,subcaption}
 \usepackage[onehalfspacing]{setspace}
 
 % Automatic formatting of SI units
@@ -20,6 +20,8 @@
 
 \linenumbers
 
+
+\lstset{language=C++,showstringspaces=false,basicstyle=\tiny,upquote=true,identifierstyle=\ttfamily\color{black}}
 
 % Leave a blank line between paragraphs instead of using \\
 
@@ -87,7 +89,71 @@ We then demonstrate this performance using two large-scale models from the liter
 
 \section{Materials and Methods}
 \subsection{GeNN}
-sssfaf
+GeNN~\citep{Yavuz2016} is a library for generating CUDA code for the simulation of spiking neural network models.
+GeNN handles much of the complexity of using CUDA directly as well as automatically performing device-specific optimizations so as to to maximize performance.
+
+GeNN consists of a main library -- implementing the API used to define models as well as the generic parts of the code generator -- and an additional library for each backend (currently there is a reference C++ backend for generating CPU code and a CUDA backend. An OpenCL backend is under development).
+Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of a single leaky integrate-and-fire neurons might be defined as follows:
+%
+\begin{lstlisting}[language=C++]
+void modelDefinition(ModelSpec &model)
+{
+    model.setDT(1.0);
+    model.setName("example");
+    
+    NeuronModels::LIF::ParamValues params(0.25, 10.0, 0.0, 0.0, 
+                                          20.0, 2.0, 0.5);
+    NeuronModels::LIF::VarValues init(5.0, 0.0);
+    
+    model.addNeuronPopulation<NeuronModels::LIF>("Pop", 1, params, init);
+}
+\end{lstlisting}
+%
+The \emph{genn-buildmodel} tool is then used to compile this file; link it against the main GeNN library and the desired backend library; and finally run the resultant executable to generate the source code required to build a simulation dynamic library (a .dll file on Windows or a .so file on Linux and Mac).
+Typically, this dynamic library is then statically linked against a simulation loop provided by the user, in this case one which simply prints the neuron's membrane voltage every timestep:
+%
+\begin{lstlisting}[language=C++]
+#include "example_CODE/definitions.h"
+
+int main()
+{
+  allocateMem();
+  initialize();
+  initializeSparse();
+
+  while(t < 100.0f) {
+     stepTime();
+     pullVPopFromDevice();
+     std::cout << t << "," << VPop[0] << std::endl;
+  }
+  return EXIT_SUCCESS;
+}
+\end{lstlisting}
+%
+Alternatively, the dynamic library can be dynamically loaded by the users simulation code.
+Using this approach, an equivalent simulation loop could be implemented as follows using the \lstinline{SharedLibraryModel} helper class supplied with GeNN:
+%
+\begin{lstlisting}[language=C++]
+#include "sharedLibraryModel.h"
+
+int main()
+{
+  SharedLibraryModel<float> model("./", "example");
+  model.allocateMem();
+  model.initialize();
+  model.initializeSparse();
+
+  float *vPop = model.getScalar<float>("VPop");
+  while(model.getTime() < 100.0f) {
+     model.stepTime();
+     model.pullVarFromDevice("Pop", "V");
+     std::cout << model.getTime() << "," << vPop[0] << std::endl;
+  }
+  return EXIT_SUCCESS;
+}
+\end{lstlisting}
+%
+This second approach is key to the approach we use to implement PyGeNN.
 
 \subsection{SWIG}
 agaga
@@ -100,8 +166,6 @@ sfasfas
 
 \subsection{Random balanced network HPC benchmark model}
 aaaf
-
-\subsection{Cortical microcircuit model}
 
 \section{Results}
 asfgaf
