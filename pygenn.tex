@@ -18,12 +18,17 @@
 % Automatic formatting of SI units
 \usepackage[binary-units,separate-uncertainty=true]{siunitx}
 
-\linenumbers
+% Required for 'straight' quotes in code listings
+\usepackage[T1]{fontenc}
 
+% Visible TODO notes
+\newcommand{\todo}[1]{\textbf{\textsc{\textcolor{red}{(TODO: #1)}}}}
 
+% Configure code listings
 \lstset{language=C++,showstringspaces=false,basicstyle=\tiny,upquote=true,identifierstyle=\ttfamily\color{black}}
+\lstset{language=Python,showstringspaces=false,basicstyle=\tiny,upquote=true,identifierstyle=\ttfamily\color{black}}
 
-% Leave a blank line between paragraphs instead of using \\
+\linenumbers
 
 
 \def\keyFont{\fontsize{8}{11}\helveticabold }
@@ -103,7 +108,7 @@ void modelDefinition(ModelSpec &model)
     
     NeuronModels::LIF::ParamValues params(0.25, 10.0, 0.0, 0.0, 
                                           20.0, 2.0, 0.5);
-    NeuronModels::LIF::VarValues init(5.0, 0.0);
+    NeuronModels::LIF::VarValues init(10.0, 0.0);
     
     model.addNeuronPopulation<NeuronModels::LIF>("Pop", 1, params, init);
 }
@@ -160,7 +165,26 @@ agaga
 
 \subsection{PyGeNN}
 agasg
+\begin{lstlisting}[language=Python]
+from pygenn import genn_model, genn_wrapper
 
+model = genn_model.GeNNModel("float", "example")
+params = {"C": 0.25, "TauM": 10.0, "Vrest": 0.0,
+          "Vreset": 0.0, "Vthresh": 20.0,
+          "Ioffset": 2.0, "TauRefrac": 0.5}
+init = {"V": 10.0, "RefracTime": 0.0}
+
+pop = model.add_neuron_population("Pop", 1, "LIF", params, init)
+
+model.build()
+model.load()
+
+v_pop = pop.vars["V"].view
+while model.t < 100.0:
+  model.step_time()
+  pop.pull_var_from_device("V")
+  print("%f, %f" % (model.t, v_pop)
+\end{lstlisting}
 \subsection{Cortical microcircuit model}
 sfasfas
 
