@@ -63,7 +63,6 @@ For full guidelines regarding your manuscript please refer to \href{http://www.f
 
 As a primary goal, the abstract should render the general significance and conceptual advance of the work clearly accessible to a broad readership. References should not be cited in the abstract. Leave the Abstract empty if your article does not require one, please see \href{http://www.frontiersin.org/about/AuthorGuidelines#SummaryTable}{Summary Table} for details according to article type. 
 
-
 \tiny
  \keyFont{ \section{Keywords:} keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword} %All article types: you may provide up to 8 keywords; at least 5 are mandatory.
 \end{abstract}
@@ -78,7 +77,7 @@ Therefore, with both the computational neuroscience and machine learning communi
 NEST~\citep{Eppler2009}, Neuron~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now offer a Python interface.
 Furthermore, newer simulators such as Arbor and Brian2~\citep{Stimberg2019} have been designed from the ground up with a Python interface.
 
-While we have recently demonstrated some very competitive performance results~\citep{Knight2020} using our GeNN simulator~(Yavuz2016), it has not been usable directly from Python.
+While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using our GeNN simulator~(Yavuz2016), it has not been usable directly from Python.
 GeNN can already be used as a backend for the Python-based Brian2 simulator~\citep{Stimberg2019} but, while Brian2GeNN~\citep{Stimberg2020} allows Brian2 users to harness the performance benefits GeNN provides, it is not possible to expose all of GeNN's unique features to Python through the Brian2 API.
 Specifically, GeNN not only allows users to easily define their own neuron and synapse models but, also `snippets' for offloading the potentially costly initialisation of model parameters and connectivity onto the GPU.
 Additionally, GeNN  provides a lot of freedom for users to integrate their own code into the simulation loop.
@@ -116,7 +115,7 @@ void modelDefinition(ModelSpec &model)
 %
 The \emph{genn-buildmodel} command line tool is then used to compile this file; link it against the main GeNN library and the desired backend library; and finally run the resultant executable to generate the source code required to build a simulation dynamic library (a .dll file on Windows or a .so file on Linux and Mac).
 This dynamic library can then either be statically linked against a simulation loop provided by the user or dynamically loaded by the users simulation code.
-For example, using the \lstinline{SharedLibraryModel} helper class supplied with GeNN, this example loads the previously defined model, initialises the heterogenous neuron parameters and prints each neuron's membrane voltage every timestep: 
+To demonstrate this latter approach, this example uses the \lstinline{SharedLibraryModel} helper class supplied with GeNN to dynamically loads the previously defined model, initialise the heterogenous neuron parameters and print each neuron's membrane voltage every timestep: 
 %
 \begin{lstlisting}[language=C++]
 #include "sharedLibraryModel.h"
@@ -145,8 +144,6 @@ int main()
     return EXIT_SUCCESS;
 }
 \end{lstlisting}
-%
-This approach is key to how we implement PyGeNN.
 
 \subsection{SWIG}
 In order to use GeNN from Python, both the model creation API and the \lstinline{SharedLibraryModel} functionality need to be `wrapped' so they can be called from Python.
@@ -168,23 +165,24 @@ Instead, valid template instantiations need to be given a unique name in Python 
 %template(addNeuronPopulationLIF) ModelSpec::addNeuronPopulation<NeuronModels::LIF>;
 \end{lstlisting}
 %
-Having to manually add these directives whenever a model is added to GeNN, would be exactly the sort of maintenance overhead we were trying to avoid by using SWIG.
+Having to manually add these directives whenever a model is added to GeNN would be exactly the sort of maintenance overhead we were trying to avoid by using SWIG.
 Instead, when building the Python wrapper, we search the GeNN header files for the macros used to declare models in C++ and automatically generate SWIG \lstinline{%template} directives.
 
-\begin{figure}[h!]
-    \begin{center}
-        \includegraphics{figures/microcircuit_overheads.pdf}
-    \end{center}
-    \caption{}\label{fig:microcircuit_overheads}
-\end{figure}
-
+As previously discussed, a key feature of GeNN is the ease with which it allows users to define their own neuron and synapse models as well as `snippets' defining how variables and connectivity should be initialised.
+Beneath the syntactic sugar described in our previous work~\citep{Knight2018}, new models can be defined in C++ by defining a new class derived from, for example, the \lstinline{NeuronModels::Base} class.
+The ability to extend this system to Python was a key requirement of PyGeNN and, by using SWIG `directors', C++ classes can be made inheritable from Python using a single SWIG directive:
+%
+\begin{lstlisting}[language=C++]
+%feature("director") NeuronModels::Base; 
+\end{lstlisting}
+%
 \subsection{PyGeNN}
 While GeNN \emph{could} be used from Python via the wrapper generated using the techniques described in the previous section, the resultant code would be unpleasant to use directly.
 For example, rather than being able to specify neuron parameters using a native Python data structure such as a list or dictionary, you have to use a wrapped type such as \lstinline{DoubleVector([0.25, 10.0, 0.0, 0.0, 20.0, 2.0, 0.5])}.
 To provide a more user-friendly and pythonic interface, we have built PyGeNN on top of the wrapper generated by SWIG.
-PyGeNN combines the model description API and \lstinline{SharedLibraryModel} simulation API into a single API **TODO**.
-In PyGeNN, population parameters and initial state can be configured using dictionaries
-
+PyGeNN combines the separate model building and simulation stages of building a GeNN model in C++ into a single API, likely to be more familiar to users of existing Python-based model description languages such as PyNEST~\citep{Eppler2009} or PyNN~\citep{Davison2008}.
+This allows PyGeNN to provide a unified dictionary-based API for initialising homogeneous and heterogeneous parameters as shown in this re-implementation of the previous example:
+%
 \begin{lstlisting}[language=Python]
 from pygenn import genn_wrapper, genn_model
 
@@ -211,14 +209,20 @@ while model.t < 200.0:
     print("%t, %f, %f, %f, %f" %(model.t, v[0], v[1], v[2], v[3]))
 \end{lstlisting}
 %
-\begin{figure}[h!]
+While the PyGeNN API is more pythonic and, hopefully, more user-friendly than the C++ interface to GeNN, it still allows the user the same amount of control with respect to defining their own simulation loop.
+Additionally, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially additional expensive copying of data is required.
+\todo{defining new neuron models}
+%
+\begin{figure}
     \begin{center}
-        \includegraphics{figures/hpc_benchmark.pdf}
+        \includegraphics[width=180mm]{figures/potjans_circuit_v2}
     \end{center}
-    \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
-    `Overhead' in GPU simulations refers to time spent in simulation loop but not within CUDA kernels.
-    The dotted horizontal line indicates realtime performance}
-    \label{fig:hpc_benchmark}
+    \caption{Illustration of the microcircuit model.
+    Blue triangles represent excitatory populations, red circles represent inhibitory populations and the numbers beneath each symbol shows the number of neurons in each population.
+    Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
+    All excitatory synaptic weights are normally distributed with a mean of \SI{0.0878}{\nano\ampere} (unless otherwise indicated in green) and a standard deviation of \SI{0.00878}{\nano\ampere}.
+    All inhibitory synaptic weights are normally distributed with a mean of \SI{0.3512}{\nano\ampere} and a standard deviation of \SI{0.03512}{\nano\ampere}.}
+    \label{fig:potjans_circuit}
 \end{figure}
 %
 \subsection{Spike recording system}
@@ -228,10 +232,31 @@ Previously, recording spikes in GeNN was very similar to the recording of voltag
 However, especially when simulating models with a small simulation timestep, such frequent synchronization between the CPU and GPU is costly.
 Furthermore, biological neurons typically spike at a low rate (in the cortex, the average firing rate is only around \SI{3}{\hertz}~\citep{Buzsaki2014}) meaning that the amount of spike data transferred every timestep would typically be small.
 To address both of these sources of inefficiency, we have added a new data structure to GeNN which stores spike data for many timesteps on device.
-To reduce the memory requirements of this data structure, while  allowing it be 
-
+To reduce the memory required for this data structure and to make its size independent of neural activity, the spikes emitted by a population of $N$ neurons in a single simulation timestep are stored in a $N\si{\bit}$ bitfield where a `1' represents a spike and a `0' the absence of one.
+Spiking data over multiple timesteps is then represented by bitfields stored in a circular buffer.
+Using this approach, even the spiking output of relatively large models, running for many timesteps can be stored in a small amount of memory.
+For example, the spiking output of a model with \num{100E3} neurons running for \num{10E3} simulation timesteps, required less than \SI{120}{\mega\byte} -- a small fraction of the memory on a modern GPU.
+While efficiently handling spikes stored in a bitfield is a little trickier than working with a list of neuron indices, GeNN provides an efficient C++ helper function for saving the spikes stored in a bitfield to a text file and a numpy-based method for decoding them in PyGeNN. 
+%
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=85mm]{figures/circuit2}
+    \end{center}
+    \caption{Illustration of the balanced random network model.
+    The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
+    Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
+    All excitatory synaptic weights are initialised to \SI{0.04561}{\nano\ampere} and all inhibitory synaptic weights are initialised to \SI{0.22805}{\nano\ampere}.}
+    \label{fig:balanced_random_circuit}
+\end{figure}
+%
 \subsection{Cortical microcircuit model}
-sfasfas
+\citet{Potjans2012} developed this model of \SI{1}{\milli\metre\cubed} of early-sensory cortex.
+The model consists of \num{77169} neurons, divided into separate populations representing the excitatory and inhibitory population in each of 4 cortical layers~(2/3, 4, 5 and 6).
+Neurons in each population are connected randomly with population-specific densities derived from an extensive review of the anatomical literature resulting in a total of approximately \num{0.3E9} synapses. % REWRITE SENTENCE
+Within each synaptic projection, all synaptic strengths and transmission delays are normally distributed.
+As well as its synaptic input, each neuron in the network also receives an independent Poisson input current, representing input from neighbouring un-modelled cortical regions.
+For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
+This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly significant.
 
 \subsection{Random balanced network HPC benchmark model}
 sdasd
@@ -241,6 +266,24 @@ asfgaf
 
 \subsection{Cortical microcircuit model performance}
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit mode on a representative selection of NVIDIA GPU hardware:
+%
+\begin{figure}[h!]
+    \begin{center}
+        \includegraphics{figures/microcircuit_overheads.pdf}
+    \end{center}
+    \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
+    `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
+    The dotted horizontal line indicates realtime performance}
+    \label{fig:microcircuit_overheads}
+\end{figure}
+%
+\begin{figure}[h!]
+    \begin{center}
+        \includegraphics{figures/hpc_benchmark.pdf}
+    \end{center}
+    \caption{}
+    \label{fig:hpc_benchmark}
+\end{figure}
 %
 \begin{itemize}
     \item Jetson Xavier NX -- a low-power embedded system with \SI{8}{\giga\byte} of shared memory.
@@ -258,7 +301,7 @@ Unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is 
 \todo{run xavier NX without recording and without zero copy}
 While, using this shared memory for recording spikes, reduces the overheads associated with copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
 However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10.
-This now means that, on the high-end desktop GPU, this simulation now runs faster than real-time -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019}.
+This now means that, on the high-end desktop GPU, this simulation now runs faster than real-time -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019} and significantly faster than other recently published GPU simulators~\citep{Golosio2020}.
 
 \section{Discussion}
 discuss!
