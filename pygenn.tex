@@ -92,67 +92,61 @@ GeNN~\citep{Yavuz2016} is a library for generating CUDA code for the simulation 
 GeNN handles much of the complexity of using CUDA directly as well as automatically performing device-specific optimizations so as to to maximize performance.
 
 GeNN consists of a main library -- implementing the API used to define models as well as the generic parts of the code generator -- and an additional library for each backend (currently there is a reference C++ backend for generating CPU code and a CUDA backend. An OpenCL backend is under development).
-Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of a single leaky integrate-and-fire neurons might be defined as follows:
+Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of 4 Izhikevich neurons with heterogeneous parameters, driven be a constant input current might be defined as follows:
 %
 \begin{lstlisting}[language=C++]
 void modelDefinition(ModelSpec &model)
 {
-    model.setDT(1.0);
-    model.setName("example");
+    model.setDT(0.1);
+    model.setName("izhikevich");
     
-    NeuronModels::LIF::ParamValues params(0.25, 10.0, 0.0, 0.0, 
-                                          20.0, 2.0, 0.5);
-    NeuronModels::LIF::VarValues init(10.0, 0.0);
+    NeuronModels::IzhikevichVariable::VarValues popInit(
+        -65.0, -20.0, uninitialisedVar(), uninitialisedVar(),
+        uninitialisedVar(), uninitialisedVar());
     
-    model.addNeuronPopulation<NeuronModels::LIF>("Pop", 1, params, init);
+    model.addNeuronPopulation<NeuronModels::IzhikevichVariable>(
+        "Pop", 4, {}, popInit);
+        
+    CurrentSourceModels::DC::ParamValues csParams(10.0);
+
+    model.addCurrentSource<CurrentSourceModels::DC>(
+        "CS", "Neurons", csParams, {});
 }
 \end{lstlisting}
 %
 The \emph{genn-buildmodel} command line tool is then used to compile this file; link it against the main GeNN library and the desired backend library; and finally run the resultant executable to generate the source code required to build a simulation dynamic library (a .dll file on Windows or a .so file on Linux and Mac).
-Typically, this dynamic library is then statically linked against a simulation loop provided by the user, in this case one which simply prints the neuron's membrane voltage every timestep:
-%
-\begin{lstlisting}[language=C++]
-#include "example_CODE/definitions.h"
-
-int main()
-{
-  allocateMem();
-  initialize();
-  initializeSparse();
-
-  while(t < 100.0f) {
-     stepTime();
-     pullVPopFromDevice();
-     std::cout << t << "," << VPop[0] << std::endl;
-  }
-  return EXIT_SUCCESS;
-}
-\end{lstlisting}
-%
-Alternatively, the dynamic library can be dynamically loaded by the users simulation code.
-Using this approach, an equivalent simulation loop could be implemented as follows using the \lstinline{SharedLibraryModel} helper class supplied with GeNN:
+This dynamic library can then either be statically linked against a simulation loop provided by the user or dynamically loaded by the users simulation code.
+For example, using the \lstinline{SharedLibraryModel} helper class supplied with GeNN, this example loads the previously defined model, initialises the heterogenous neuron parameters and prints each neuron's membrane voltage every timestep: 
 %
 \begin{lstlisting}[language=C++]
 #include "sharedLibraryModel.h"
 
 int main()
 {
-  SharedLibraryModel<float> model("./", "example");
-  model.allocateMem();
-  model.initialize();
-  model.initializeSparse();
+    SharedLibraryModel<float> model("./", "izhikevich");
+    model.allocateMem();
+    model.initialize();
+    float *aPop = model.getScalar<float>("a");
+    float *bPop = model.getScalar<float>("b");
+    float *cPop = model.getScalar<float>("c");
+    float *dPop = model.getScalar<float>("d");
+    aPop[0] = 0.02; bPop[0] = 0.2;  cPop[0] = -65.0;    dPop[0] = 8.0;  // RS
+    aPop[1] = 0.1;  bPop[1] = 0.2;  cPop[1] = -65.0;    dPop[1] = 2.0;  // FS
+    aPop[2] = 0.02; bPop[2] = 0.2;  cPop[2] = -50.0;    dPop[2] = 2.0;  // CH
+    aPop[3] = 0.02; bPop[3] = 0.2;  cPop[3] = -55.0;    dPop[3] = 4.0;  // IB
+    model.initializeSparse();
 
-  float *vPop = model.getScalar<float>("VPop");
-  while(model.getTime() < 100.0f) {
-     model.stepTime();
-     model.pullVarFromDevice("Pop", "V");
-     std::cout << model.getTime() << "," << vPop[0] << std::endl;
-  }
-  return EXIT_SUCCESS;
+    float *vPop = model.getScalar<float>("VPop");
+    while(model.getTime() < 200.0f) {
+        model.stepTime();
+        model.pullVarFromDevice("Pop", "V");
+        printf("%f, %f, %f, %f, %f\n", t, VPop[0], VPop[1], VPop[2], VPop[3]);
+    }
+    return EXIT_SUCCESS;
 }
 \end{lstlisting}
 %
-This second approach is key to the approach we use to implement PyGeNN.
+This approach is key to how we implement PyGeNN.
 
 \subsection{SWIG}
 In order to use GeNN from Python, both the model creation API and the \lstinline{SharedLibraryModel} functionality need to be `wrapped' so they can be called from Python.
@@ -192,24 +186,29 @@ PyGeNN combines the model description API and \lstinline{SharedLibraryModel} sim
 In PyGeNN, population parameters and initial state can be configured using dictionaries
 
 \begin{lstlisting}[language=Python]
-from pygenn import genn_model, genn_wrapper
+from pygenn import genn_wrapper, genn_model
 
-model = genn_model.GeNNModel("float", "example")
-params = {"C": 0.25, "TauM": 10.0, "Vrest": 0.0,
-          "Vreset": 0.0, "Vthresh": 20.0,
-          "Ioffset": 2.0, "TauRefrac": 0.5}
-init = {"V": 10.0, "RefracTime": 0.0}
+model = genn_model.GeNNModel("float", "izhikevich")
+model.dT = 0.1
 
-pop = model.add_neuron_population("Pop", 1, "LIF", params, init)
+izk_init = {"V": -65.0,
+            "U": -20.0,
+            "a": [0.02,     0.1,    0.02,   0.02],
+            "b": [0.2,      0.2,    0.2,    0.2],
+            "c": [-65.0,    -65.0,  -50.0,  -55.0],
+            "d": [8.0,      2.0,    2.0,    4.0]}
+
+pop = model.add_neuron_population("Pop", 4, "IzhikevichVariable", {}, izk_init)
+model.add_current_source("CS", "DC", "Neurons", {"amp": 10.0}, {})
 
 model.build()
 model.load()
 
-v_pop = pop.vars["V"].view
-while model.t < 100.0:
-  model.step_time()
-  pop.pull_var_from_device("V")
-  print("%f, %f" % (model.t, v_pop)
+v = pop.vars["V"].view
+while model.t < 200.0:
+    model.step_time()
+    model.pull_state_from_device("Neurons")
+    print("%t, %f, %f, %f, %f" %(model.t, v[0], v[1], v[2], v[3]))
 \end{lstlisting}
 %
 \begin{figure}[h!]
