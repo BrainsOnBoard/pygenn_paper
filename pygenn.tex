@@ -272,7 +272,46 @@ This model requires simulation using a relatively small timestep of \SI{0.1}{\mi
 
 \subsection{Random balanced network HPC benchmark model}
 \label{sec:methods/hpc_benchmark}
-sdasd
+\begin{lstlisting}[language=Python]
+stdp_model = create_custom_weight_update_class(
+    "stdp",
+
+    param_names=["tauPlus", "tauMinus", "lambda", "alpha", "mu", "denDelayStep"],
+    derived_params=[
+        ("decayPlus", create_dpf_class(lambda pars, dt: np.exp(-dt / pars[0]))()),
+        ("decayMinus", create_dpf_class(lambda pars, dt: np.exp(-dt / pars[1]))())],
+
+    var_name_types=[("g", "scalar")],
+    pre_var_name_types=[("preTrace", "scalar")],
+    post_var_name_types=[("postTrace", "scalar")],
+
+    sim_code=
+        """
+        const scalar dt = $(t) - $(sT_post);
+        if (dt > 0) {
+            const scalar timing = $(postTrace) * exp(-dt / $(tauMinus));
+            $(g) -= $(lambda) * $(alpha) * $(g) * timing;
+        }
+        $(addToInSynDelay, $(g), (unsigned int)$(denDelayStep));
+        """,
+    learn_post_code=
+        """
+        const scalar dt = $(t) - $(sT_pre);
+        if (dt > 0) {
+            const scalar timing = $(preTrace) * exp(-dt / $(tauPlus));
+            $(g) += $(lambda) * pow($(g), $(mu)) * timing;
+        }
+        """,
+
+    pre_spike_code="$(preTrace) += 1.0;",
+    pre_dynamics_code="$(preTrace) *= $(decayPlus);",
+    
+    post_spike_code="$(postTrace) += 1.0;",
+    post_dynamics_code="$(postTrace) *= $(decayMinus);",
+
+    is_pre_spike_time_required=True,
+    is_post_spike_time_required=True)
+\end{lstlisting}
 
 \section{Results}
 In the following subsection we will analyse the performance of the models introduced in sections~\ref{sec:methods/cortical_microcircuit}~and~\ref{sec:methods/hpc_benchmark} on a representative selection of NVIDIA GPU hardware:
