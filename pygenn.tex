@@ -70,7 +70,7 @@ As a primary goal, the abstract should render the general significance and conce
 
 \section{Introduction}
 A wide range of spiking neural network~(SNN) simulators are available, each with their own niche. 
-NEST~\citep{Gewaltig2007} is widely used for large-scale point neuron simulations on distributed computing systems; NEURON~\citep{carnevale2006neuron} and Arbor~\citep{Akar2019} specialise in the simulation of complex multi-compartmental models; and CARLsim~\citep{Chou2018} and GeNN~\citep{Yavuz2016} use Graphics Processing Units~(GPUs) to accelerate point neuron models.
+NEST~\citep{Gewaltig2007} is widely used for large-scale point neuron simulations on distributed computing systems; NEURON~\citep{carnevale2006neuron} and Arbor~\citep{Akar2019} specialise in the simulation of complex multi-compartmental models; and CARLsim~\citep{Chou2018}, NeuronGPU~\citep{Golosio2020} and GeNN~\citep{Yavuz2016} use Graphics Processing Units~(GPUs) to accelerate point neuron models.
 For performance reasons, many of these simulators are written in C++ and, especially amongst the older simulators, users describe their models either using a Domain-Specific Language~(DSL) or directly in C++.
 For programming language purists, a DSL may be an elegant way of describing an SNN network model and, for simulator developers, not having to add bindings to another language is convenient.
 However, both choices act as a barrier to potential users.
@@ -271,6 +271,7 @@ For a full description of the model parameters, please refer to \citet[tables 4 
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly significant.
 
 \subsection{Random balanced network HPC benchmark model}
+
 \label{sec:methods/hpc_benchmark}
 \begin{lstlisting}[language=Python]
 stdp_model = create_custom_weight_update_class(
