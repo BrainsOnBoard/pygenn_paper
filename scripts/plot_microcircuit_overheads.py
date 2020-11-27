@@ -61,7 +61,8 @@ axis.axhline(1000.0, color="black", linestyle="--")
 
 # Add device labels
 for x, t in zip(group_x, devices):
-    axis.text(x, -6500.0, t, ha="center", fontsize=10)
+    axis.text(x, -7500 if plot_settings.presentation else -6500.0, t, ha="center",
+              fontsize=15 if plot_settings.presentation else 10)
 
 # Configure axis
 axis.set_xticks(bar_x)
@@ -73,7 +74,8 @@ sns.despine(ax=axis)
 axis.xaxis.grid(False)
 
 # Show figure legend with devices beneath figure
-fig.legend(legend_actors, time_labels, ncol=len(time_labels), frameon=False, loc="lower center")
+fig.legend(legend_actors, time_labels, ncol=2 if plot_settings.presentation else len(time_labels),
+           frameon=False, loc="lower center")
 
 plt.tight_layout(pad=0)
 if not plot_settings.presentation:
