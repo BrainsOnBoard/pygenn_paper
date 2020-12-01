@@ -83,7 +83,8 @@ GeNN can already be used as a backend for the Python-based Brian2 simulator~\cit
 Specifically, GeNN not only allows users to easily define their own neuron and synapse models but, also `snippets' for offloading the potentially costly initialisation of model parameters and connectivity onto the GPU.
 Additionally, GeNN  provides a lot of freedom for users to integrate their own code into the simulation loop.
 In this paper we describe the implementation of PyGeNN -- a Python package which aims to expose the full range of GeNN functionality with minimal performance overheads.
-We then demonstrate this performance using two large-scale models from the literature.
+While implementing new neuron and synapse models in the majority of other GPU simulators requires extending the underling C++ code, using PyGeNN, models can be defined directly from Python.
+We then demonstrate this ability as well as the performance of PyGeNN using two large-scale models from the literature.
 
 \section{Materials and Methods}
 \subsection{GeNN}
@@ -219,9 +220,10 @@ v = pop.vars["V"].view
 while model.t < 200.0:
     model.step_time()
     model.pull_state_from_device("Neurons")
-    print("%t, %f, %f, %f, %f" %(model.t, v[0], v[1], v[2], v[3]))
+    print("%t, %f, %f, %f, %f" % (model.t, v[0], v[1], v[2], v[3]))
 \end{lstlisting}
 %
+Initialisation of variables with homogeneous values -- such as the neuron's membrane voltage -- is performed by GeNN and those with heterogeneous values -- such as the \lstinline{a}, \lstinline{b} and \lstinline{c} parameters -- are initialised by PyGeNN when the model is loaded.
 While the PyGeNN API is more pythonic and, hopefully, more user-friendly than the C++ interface, it still provides users with the same low-level control over the simulation.
 Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially additional expensive copying of data is required.
 \todo{defining new neuron models}
@@ -233,7 +235,8 @@ Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host me
     \caption{Illustration of the balanced random network model.
     The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
     Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
-    All excitatory synaptic weights are initialised to \SI{0.04561}{\nano\ampere} and all inhibitory synaptic weights are initialised to \SI{0.22805}{\nano\ampere}.}
+    All excitatory synaptic weights are initialised to \SI{0.04561}{\nano\ampere} and all inhibitory synaptic weights are initialised to \SI{0.22805}{\nano\ampere}.
+    \todo{thomas: update the numbers to be more some fraction of N or something.}}
     \label{fig:balanced_random_circuit}
 \end{figure}
 %
@@ -271,8 +274,10 @@ For a full description of the model parameters, please refer to \citet[tables 4 
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly significant.
 
 \subsection{Random balanced network HPC benchmark model}
-
 \label{sec:methods/hpc_benchmark}
+While the cortical microcircuit model described in the previous section demonstrates many features of GeNN, it can implemented entirely with neuron and synapse models built into GeNN.
+In this section 
+
 \begin{lstlisting}[language=Python]
 stdp_model = create_custom_weight_update_class(
     "stdp",
