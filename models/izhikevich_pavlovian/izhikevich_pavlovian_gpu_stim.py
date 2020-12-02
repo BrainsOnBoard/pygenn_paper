@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 import matplotlib.pyplot as plt 
 
 from pygenn import genn_model, genn_wrapper
@@ -6,7 +6,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 from time import perf_counter
 
 from common import (izhikevich_dopamine_model, izhikevich_stdp_model, 
-                    build_model, get_params, plot)
+                    build_model, get_params, plot, convert_spikes)
 
 # ----------------------------------------------------------------------------
 # Custom models
@@ -39,7 +39,7 @@ stim_noise_model = genn_model.create_custom_current_source_class(
         """)
 
 # Get standard model parameters
-params = get_params()
+params = get_params(build_model=True, measure_timing=False, use_genn_recording=True)
 
 # ----------------------------------------------------------------------------
 # Stimuli generation
@@ -157,31 +157,52 @@ model.load(num_recording_timesteps=params["record_time_timestep"])
 print("Simulating")
 # Loop through timesteps
 sim_start_time =  perf_counter()
-start_exc_spikes = None
-start_inh_spikes = None
-end_exc_spikes = None
-end_inh_spikes = None
+start_exc_spikes = None if params["use_genn_recording"] else []
+start_inh_spikes = None if params["use_genn_recording"] else []
+end_exc_spikes = None if params["use_genn_recording"] else []
+end_inh_spikes = None if params["use_genn_recording"] else []
 while model.t < params["duration_ms"]:
     # Simulation
     model.step_time()
     
-    # If we've just finished simulating the initial recording interval
-    if model.timestep == params["record_time_timestep"]:
-        # Download recording data
-        model.pull_recording_buffers_from_device()
-        
-        start_exc_spikes = e_pop.spike_recording_data
-        start_inh_spikes = i_pop.spike_recording_data
-    # Otherwise, if we've finished entire simulation
-    elif model.timestep == params["duration_timestep"]:
-        # Download recording data
-        model.pull_recording_buffers_from_device()
-        
-        end_exc_spikes = e_pop.spike_recording_data
-        end_inh_spikes = i_pop.spike_recording_data
+    if params["use_genn_recording"]:
+        # If we've just finished simulating the initial recording interval
+        if model.timestep == params["record_time_timestep"]:
+            # Download recording data
+            model.pull_recording_buffers_from_device()
+            
+            start_exc_spikes = e_pop.spike_recording_data
+            start_inh_spikes = i_pop.spike_recording_data
+        # Otherwise, if we've finished entire simulation
+        elif model.timestep == params["duration_timestep"]:
+            # Download recording data
+            model.pull_recording_buffers_from_device()
+            
+            end_exc_spikes = e_pop.spike_recording_data
+            end_inh_spikes = i_pop.spike_recording_data
+    else:
+        if model.timestep <= params["record_time_timestep"]:
+            e_pop.pull_current_spikes_from_device()
+            i_pop.pull_current_spikes_from_device()
+            start_exc_spikes.append(np.copy(e_pop.current_spikes))
+            start_inh_spikes.append(np.copy(i_pop.current_spikes))
+        elif model.timestep > (params["duration_timestep"] - params["record_time_timestep"]):
+            e_pop.pull_current_spikes_from_device()
+            i_pop.pull_current_spikes_from_device()
+            end_exc_spikes.append(np.copy(e_pop.current_spikes))
+            end_inh_spikes.append(np.copy(i_pop.current_spikes))
 
 sim_end_time =  perf_counter()
 print("Simulation time: %fms" % ((sim_end_time - sim_start_time) * 1000.0))
+
+if not params["use_genn_recording"]:
+    start_timesteps = np.arange(0.0, params["record_time_ms"], params["timestep_ms"])
+    end_timesteps = np.arange(params["duration_ms"] - params["record_time_ms"], params["duration_ms"], params["timestep_ms"])
+    
+    start_exc_spikes = convert_spikes(start_exc_spikes, start_timesteps)
+    start_inh_spikes = convert_spikes(start_inh_spikes, start_timesteps)
+    end_exc_spikes = convert_spikes(end_exc_spikes, end_timesteps)
+    end_inh_spikes = convert_spikes(end_inh_spikes, end_timesteps)
 
 if params["measure_timing"]:
     print("\tInit:%f" % (1000.0 * model.init_time))

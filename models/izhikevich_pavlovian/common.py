@@ -1,4 +1,6 @@
+import numpy as np
 import matplotlib.pyplot as plt 
+
 from pygenn import genn_model, genn_wrapper
 from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 from six import iteritems
@@ -112,7 +114,8 @@ izhikevich_stdp_model = genn_model.create_custom_weight_update_class(
 # ----------------------------------------------------------------------------
 # Helper functions
 # ----------------------------------------------------------------------------
-def get_params(size_scale_factor=1):
+def get_params(size_scale_factor=1, build_model=True, 
+               measure_timing=False, use_genn_recording=True):
     weight_scale_factor = 1.0 / size_scale_factor
 
     # Build params dictionary
@@ -120,13 +123,13 @@ def get_params(size_scale_factor=1):
         "timestep_ms": 1.0,
 
         # Should we rebuild model
-        "build_model": False,
+        "build_model": build_model,
 
         # Generate code for kernel timing
-        "measure_timing": False,
+        "measure_timing": measure_timing,
 
         # Use GeNN's built in spike recording system
-        "use_genn_recording": True,
+        "use_genn_recording": use_genn_recording,
 
         # Simulation duration
         "duration_ms": 60.0 * 60.0 * 1000.0,
@@ -195,7 +198,18 @@ def plot_stimuli(axis, times, num_cells):
                       xytext=(0, 15.0), textcoords="offset points",
                       arrowprops=dict(facecolor=colour, edgecolor=colour, headlength=6.0),
                       annotation_clip=True, ha="center", va="bottom", color=colour)
-                      
+
+def convert_spikes(spike_list, timesteps):
+    # Determine how many spikes were emitted in each timestep
+    spikes_per_timestep = [len(s) for s in spike_list]
+    assert len(timesteps) == len(spikes_per_timestep)
+
+    # Repeat timesteps correct number of times to match number of spikes
+    spike_times = np.repeat(timesteps, spikes_per_timestep)
+    spike_ids = np.hstack(spike_list)
+    
+    return spike_times, spike_ids
+    
 def build_model(name, params, reward_timesteps):
     model = genn_model.GeNNModel("float", name)
     model.dT = params["timestep_ms"]
