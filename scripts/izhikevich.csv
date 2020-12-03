@@ -1,0 +1,16 @@
+Device,Operating System,Platform,Stimulus generation [ms],Simulation time [ms],Speedup
+Geforce 1650 GTX,Ubuntu 18,Python,223.644305,54010.49859,66.65370797
+Geforce 1650 GTX,Ubuntu 18,Python GPU stimuli,801.548054,53769.41835,66.95255613
+Geforce 1650 GTX,Ubuntu 18,Python recording,233.386121,50259.54753,71.62818165
+Geforce 1650 GTX,Ubuntu 18,Python recording and GPU stimuli,700.262549,50017.36661,71.97500077
+Geforce 1650 GTX,Ubuntu 18,C++ recording and GPU stimuli,44.3087,38318.2,93.95013336
+Titan RTX,Ubuntu 18,Python,93.510809,53068.91205,67.83632565
+Titan RTX,Ubuntu 18,Python GPU stimuli,399.660019,53232.42569,67.62795333
+Titan RTX,Ubuntu 18,Python recording,90.028629,50276.32874,71.60427362
+Titan RTX,Ubuntu 18,Python recording and GPU stimuli,421.790446,50486.01304,71.30687854
+Titan RTX,Ubuntu 18,C++ recording and GPU stimuli,48.267,38626.9,93.19929893
+Geforce GTX 1050 Ti,Windows 10,Python,216.8553,85722.6944,41.99588015
+Geforce GTX 1050 Ti,Windows 10,Python GPU stimuli,653.7478,82116.8868,43.83994742
+Geforce GTX 1050 Ti,Windows 10,Python recording,220.0524,73886.4192,48.72343306
+Geforce GTX 1050 Ti,Windows 10,Python recording and GPU stimuli,656.848,68868.1125,52.27382992
+Geforce GTX 1050 Ti,Windows 10,C++ recording and GPU stimuli,43.9456,62197.9,57.87976764
