@@ -13,26 +13,22 @@ duration_ms = 60 * 60 * 1000
 bin_ms = 10
 display_time = 2000
 
+pal = sns.color_palette("deep")
+
 def get_masks(times):
     return (np.where(times < 50000),
             np.where(times > (duration_ms - 50000)))
 
 def plot_reward(axis, times):
-    for t in times:
-        axis.annotate("Reward",
-            xy=(t / 1000.0, 0), xycoords="data",
-            xytext=(0, -15.0), textcoords="offset points",
-            arrowprops=dict(facecolor="black", headlength=6.0),
-            annotation_clip=True, ha="center", va="top")
+    axis.vlines(times / 1000.0, 0, num_neurons, 
+                linestyle="--", linewidth=2, color=pal[4])
 
 def plot_stimuli(axis, times, ids):
     for t, i in zip(times, ids):
-        colour = "green" if i == 0 else "black"
-        axis.annotate("S%u" % i,
-            xy=(t / 1000.0, num_neurons), xycoords="data",
-            xytext=(0, 15.0), textcoords="offset points", 
-            arrowprops=dict(facecolor=colour, edgecolor=colour, headlength=6.0),
-            annotation_clip=True, rotation="vertical", ha="center", va="bottom", color=colour)
+        colour = pal[2] if i == 0 else "black"
+        axis.annotate("", xy=(t / 1000.0, num_neurons), xycoords="data", color=colour,
+                      xytext=(0, 15.0), textcoords="offset points", annotation_clip=True, 
+                      arrowprops=dict(facecolor=colour, edgecolor=colour, headlength=6.0))
 
 def read_spikes(filename):
     return np.loadtxt(filename, delimiter=",", skiprows=1,
@@ -68,24 +64,30 @@ corresponding_reward_last_second = reward_times[reward_times_last_second][np.whe
 padding_first_second = (display_time - (corresponding_reward_first_second - rewarded_stimuli_time_first_second)) / 2
 padding_last_second = (display_time - (corresponding_reward_last_second - rewarded_stimuli_time_last_second)) / 2
 
+min_first_second = (rewarded_stimuli_time_first_second - padding_first_second) / 1000.0
+max_first_second = (corresponding_reward_first_second + padding_first_second) / 1000.0
+min_last_second = (rewarded_stimuli_time_last_second - padding_last_second) / 1000.0
+max_last_second = (corresponding_reward_last_second + padding_last_second) / 1000.0
+
+
 # Create plot
 figure, axes = plt.subplots(2, figsize=(plot_settings.column_width, 
                                         120.0 * plot_settings.mm_to_inches))
 
 # Plot spikes that occur in first second
 axes[0].scatter(e_spikes["time"][e_spike_first_second] / 1000.0, e_spikes["id"][e_spike_first_second], 
-                s=1, edgecolors="none", color="firebrick", rasterized=True)
+                s=1, edgecolors="none", color=pal[3], rasterized=True)
 axes[0].scatter(i_spikes["time"][i_spike_first_second] / 1000.0, i_spikes["id"][i_spike_first_second] + num_excitatory, 
-                s=1, edgecolors="none", color="navy", rasterized=True)
+                s=1, edgecolors="none", color=pal[0], rasterized=True)
 
 # Plot spikes that occur in final second
 axes[1].scatter(e_spikes["time"][e_spike_last_second] / 1000.0, e_spikes["id"][e_spike_last_second], 
-                s=1, edgecolors="none", color="firebrick", rasterized=True)
+                s=1, edgecolors="none", color=pal[3], rasterized=True)
 axes[1].scatter(i_spikes["time"][i_spike_last_second] / 1000.0, i_spikes["id"][i_spike_last_second] + num_excitatory, 
-                s=1, edgecolors="none", color="navy", rasterized=True)
+                s=1, edgecolors="none", color=pal[0], rasterized=True)
 
-axes[0].xaxis.set_major_formatter(FormatStrFormatter("%.0f"))
-axes[1].xaxis.set_major_formatter(FormatStrFormatter("%.0f"))
+axes[0].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
+axes[1].xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
 
 
 # Remove axis junk
@@ -99,10 +101,10 @@ axes[1].yaxis.grid(False)
 # Configure axes
 axes[0].set_title("A", loc="left")
 axes[1].set_title("B", loc="left")
-axes[0].set_xlim(((rewarded_stimuli_time_first_second - padding_first_second) / 1000.0, 
-                  (corresponding_reward_first_second + padding_first_second) / 1000.0))
-axes[1].set_xlim(((rewarded_stimuli_time_last_second - padding_last_second) / 1000.0, 
-                  (corresponding_reward_last_second + padding_last_second) / 1000.0))
+axes[0].set_xticks(np.arange(np.floor(min_first_second), np.ceil(max_first_second), 0.5))
+axes[1].set_xticks(np.arange(np.floor(min_last_second), np.ceil(max_last_second), 0.5))
+axes[0].set_xlim((min_first_second, max_first_second))
+axes[1].set_xlim((min_last_second, max_last_second))
 axes[0].set_ylim((0, num_neurons))
 axes[1].set_ylim((0, num_neurons))
 axes[0].set_ylabel("Neuron number")
@@ -114,7 +116,7 @@ axes[1].set_xlabel("Time [s]")
 # **NOTE** for whatever reason, this doesn't play nicely with  
 # annotations so we need to do this first, manually making sure 
 # there is enough space BEFORE adding annotation
-figure.tight_layout(pad=0, rect=[0.0, 0.0, 0.99, 0.95], h_pad=3.0)
+figure.tight_layout(pad=0, rect=[0.0, 0.0, 0.99, 0.98], h_pad=1.0)
 
 # Plot reward times and rewarded stimuli that occur in first second
 plot_reward(axes[0], reward_times[reward_times_first_second]);
