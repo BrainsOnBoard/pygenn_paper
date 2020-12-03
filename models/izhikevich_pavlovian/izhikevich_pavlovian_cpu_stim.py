@@ -9,57 +9,39 @@ from common import (izhikevich_dopamine_model, izhikevich_stdp_model,
                     build_model, get_params, plot, convert_spikes)
 
 # ----------------------------------------------------------------------------
-# Helper functions
-# ----------------------------------------------------------------------------
-def get_start_end_stim(stim_counts):
-    end_stimuli = np.cumsum(stim_counts)
-    start_stimuli = np.empty_like(end_stimuli)
-    start_stimuli[0] = 0
-    start_stimuli[1:] = end_stimuli[0:-1]
-    
-    return start_stimuli, end_stimuli
-
-# ----------------------------------------------------------------------------
 # Custom models
 # ----------------------------------------------------------------------------
 stim_noise_model = genn_model.create_custom_current_source_class(
     "stim_noise",
 
-    param_names=["n", "stimMagnitude"],
-    var_name_types=[("startStim", "unsigned int"), ("endStim", "unsigned int", VarAccess_READ_ONLY)],
-    extra_global_params=[("stimTimes", "scalar*")],
+    param_names=["n"],
+    var_name_types=[("iExt", "scalar", VarAccess_READ_ONLY)],
     injection_code=
         """
-        scalar current = ($(gennrand_uniform) * $(n) * 2.0) - $(n);
-        if($(startStim) != $(endStim) && $(t) >= $(stimTimes)[$(startStim)]) {
-           current += $(stimMagnitude);
-           $(startStim)++;
-        }
-        $(injectCurrent, current);
+        $(injectCurrent, $(iExt) + ($(gennrand_uniform) * $(n) * 2.0) - $(n));
         """)
 
 # ----------------------------------------------------------------------------
 # Stimuli generation
 # ----------------------------------------------------------------------------
 # Get standard model parameters
-params = get_params(build_model=True, measure_timing=False, use_genn_recording=True)
+params = get_params(build_model=False, measure_timing=False, use_genn_recording=True)
 
 # Generate stimuli sets of neuron IDs
 num_cells = params["num_excitatory"] + params["num_inhibitory"]
 stim_gen_start_time =  perf_counter()
 input_sets = [np.random.choice(num_cells, params["stimuli_set_size"], replace=False)
               for _ in range(params["num_stimuli_sets"])]
+input_sets_exc = [i[i < params["num_excitatory"]] for i in input_sets]
+input_sets_inh = [i[i >= params["num_excitatory"]] - params["num_excitatory"] 
+                  for i in input_sets]
 
 # Lists of stimulus and reward times for use when plotting
+stimulus_timesteps = []
 start_stimulus_times = []
 end_stimulus_times = []
 start_reward_times = []
 end_reward_times = []
-
-# Create list for each neuron
-neuron_stimuli_times = [[] for _ in range(num_cells)]
-total_num_exc_stimuli = 0
-total_num_inh_stimuli = 0
 
 # Create zeroes numpy array to hold reward timestep bitmask
 reward_timesteps = np.zeros((params["duration_timestep"] + 31) // 32, dtype=np.uint32)
@@ -71,14 +53,8 @@ while next_stimuli_timestep < params["duration_timestep"]:
     # Pick a stimuli set to present at this timestep
     stimuli_set = np.random.randint(params["num_stimuli_sets"])
     
-    # Loop through neurons in stimuli set and add time to list
-    for n in input_sets[stimuli_set]:
-        neuron_stimuli_times[n].append(next_stimuli_timestep * params["timestep_ms"])
-    
-    # Count the number of excitatory neurons in input set and add to total
-    num_exc_in_input_set = np.sum(input_sets[stimuli_set] < params["num_excitatory"])
-    total_num_exc_stimuli += num_exc_in_input_set
-    total_num_inh_stimuli += (num_cells - num_exc_in_input_set)
+    # Add stimuli to list
+    stimulus_timesteps.append((next_stimuli_timestep, stimuli_set))
     
     # If we should be recording at this point, add stimuli to list
     if next_stimuli_timestep < params["record_time_timestep"]:
@@ -106,9 +82,6 @@ while next_stimuli_timestep < params["duration_timestep"]:
     next_stimuli_timestep += np.random.randint(params["min_inter_stimuli_interval_timestep"],
                                                params["max_inter_stimuli_interval_timestep"])
 
-# Count stimuli each neuron should emit
-neuron_stimuli_counts = [len(n) for n in neuron_stimuli_times]
-
 stim_gen_end_time =  perf_counter()
 print("Stimulus generation time: %fms" % ((stim_gen_end_time - stim_gen_start_time) * 1000.0))
 
@@ -123,25 +96,16 @@ model, e_pop, i_pop, e_e_pop, e_i_pop = build_model("izhikevich_pavlovian_gpu_st
                                                     params, reward_timesteps)
 
 # Current source parameters
-curr_source_params = {"n": 6.5, "stimMagnitude": params["stimuli_current"]}
-
-# Calculate start and end indices of stimuli to be injected by each current source
-start_exc_stimuli, end_exc_stimuli = get_start_end_stim(neuron_stimuli_counts[:params["num_excitatory"]])
-start_inh_stimuli, end_inh_stimuli = get_start_end_stim(neuron_stimuli_counts[params["num_excitatory"]:])
+curr_source_params = {"n": 6.5}
 
 # Current source initial state
-exc_curr_source_init = {"startStim": start_exc_stimuli, "endStim": end_exc_stimuli}
-inh_curr_source_init = {"startStim": start_inh_stimuli, "endStim": end_inh_stimuli}
+curr_source_init = {"iExt": 0.0}
 
 # Add background current sources
 e_curr_pop = model.add_current_source("ECurr", stim_noise_model, "E", 
-                                      curr_source_params, exc_curr_source_init)
+                                      curr_source_params, curr_source_init)
 i_curr_pop = model.add_current_source("ICurr", stim_noise_model, "I", 
-                                      curr_source_params, inh_curr_source_init)
-
-# Set stimuli times
-e_curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times[:params["num_excitatory"]]))
-i_curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times[params["num_excitatory"]:]))
+                                      curr_source_params, curr_source_init)
 
 if params["build_model"]:
     print("Building model")
@@ -155,6 +119,11 @@ print("Loading model")
 model.load(num_recording_timesteps=params["record_time_timestep"])
 
 print("Simulating")
+
+# Get memory views to access currents
+e_curr_ext_view = e_curr_pop.vars["iExt"].view
+i_curr_ext_view = i_curr_pop.vars["iExt"].view
+
 # Loop through timesteps
 sim_start_time =  perf_counter()
 start_exc_spikes = None if params["use_genn_recording"] else []
@@ -162,9 +131,38 @@ start_inh_spikes = None if params["use_genn_recording"] else []
 end_exc_spikes = None if params["use_genn_recording"] else []
 end_inh_spikes = None if params["use_genn_recording"] else []
 while model.t < params["duration_ms"]:
+    # If we should inject stimuli during this timestep
+    should_stimulate = (len(stimulus_timesteps) > 0 and 
+                        model.timestep == stimulus_timesteps[0][0])
+    if should_stimulate:
+        # Get input set associated with stimuli
+        stimuli_input_set_exc = input_sets_exc[stimulus_timesteps[0][1]]
+        stimuli_input_set_inh = input_sets_inh[stimulus_timesteps[0][1]]
+        
+        # Set input current to neurons in set to stimuli
+        e_curr_ext_view[stimuli_input_set_exc] = params["stimuli_current"]
+        i_curr_ext_view[stimuli_input_set_inh] = params["stimuli_current"]
+
+        # Upload
+        e_curr_pop.push_var_to_device("iExt")
+        i_curr_pop.push_var_to_device("iExt")
+
     # Simulation
     model.step_time()
     
+    # If we injected stimuli during this timestep
+    if should_stimulate:
+        # Remove this stimulus from array
+        stimulus_timesteps.pop(0)
+        
+        # Zero host currents
+        e_curr_ext_view[:] = 0.0
+        i_curr_ext_view[:] = 0.0
+        
+        # Upload
+        e_curr_pop.push_var_to_device("iExt")
+        i_curr_pop.push_var_to_device("iExt")
+        
     if params["use_genn_recording"]:
         # If we've just finished simulating the initial recording interval
         if model.timestep == params["record_time_timestep"]:
