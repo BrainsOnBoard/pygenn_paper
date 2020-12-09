@@ -84,7 +84,12 @@ Specifically, GeNN not only allows users to easily define their own neuron and s
 Additionally, GeNN  provides a lot of freedom for users to integrate their own code into the simulation loop.
 In this paper we describe the implementation of PyGeNN -- a Python package which aims to expose the full range of GeNN functionality with minimal performance overheads.
 While implementing new neuron and synapse models in the majority of other GPU simulators requires extending the underling C++ code, using PyGeNN, models can be defined directly from Python.
-We then demonstrate this ability as well as the performance of PyGeNN using two large-scale models from the literature.
+Finally, we demonstrate the flexibility and performance of PyGeNN in two scenarios where minimising performance overheads is particularly critical.
+\begin{itemize}
+    \item In a simulation of a large, highly-connected model of a cortical microcircuit~\citep{Potjans2012} with small simulation timesteps. Here the cost of copying spike data off the GPU from a large number of neurons every timestep can become a bottleneck.
+    \item In a simulation of a much smaller model of Pavlovian conditioning~\citep{Izhikevich2007} where learning occurs over \SI{1}{\hour} of biological time and stimuli is delivered -- following a complex scheme -- throughout the simulation. Here any overheads are multiplied by a large number of timesteps and copying stimuli to the GPU can become a bottleneck.
+\end{itemize}
+Using the facilities provided by PyGeNN, we show that both scenarios can be simulated from Python with only minimal overheads over a C++ implementation.
 
 \section{Materials and Methods}
 \subsection{GeNN}
@@ -344,7 +349,7 @@ In the following subsection we will analyse the performance of the models introd
     \item Titan RTX -- a high-end workstation GPU based on the Turing architecture with \SI{24}{\giga\byte} of dedicated memory.
 \end{itemize}
 %
-All of these systems run Ubuntu 18 apart from the GeForce 1050 Ti-equipped system which runs Windows 10.
+All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 Ti which runs Windows 10.
 
 \subsection{Cortical microcircuit model performance}
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit mode and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
@@ -386,15 +391,17 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
 
 Figure~\ref{fig:izhikevich} shows the performance of simulations of this model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
 These PyGeNN results are compared to a C++ simulation which takes advantage of both optimizations.
-Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark.
+Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
 This is because, as discussed previously, this model is simply not large enough to fill the \num{4608} CUDA cores present on the Titan RTX.
 Therefore, as the two GPUs share the same Turing architecture and have very similar clock speeds (\SIrange{1350}{1770}{\mega\hertz} for the Titan RTX and \SIrange{1485}{1665}{\mega\hertz} for the GTX 1650), the two GPUs perform very similarly.
 Furthermore, on these two systems, while using the recording system significantly improves performance, the impact of delivering stimuli on the GPU is minimal.
 However, the GTX 1050 Ti performs rather differently. 
-Although the clock speed of this device is not significantly lower (\SIrange{1290}{1392}{\mega\hertz}, its performance is significantly worse and, unlike on the other devices, using GPU to deliver stimuli improves the performance significantly.
-
-"concurrent execution of integer and floating point operations"
-\todo{examine GPU timeline in Nsight systems}
+Although the clock speed of this device is approximately the same as the other GPUs (\SIrange{1290}{1392}{\mega\hertz}) and it has a similar number of CUDA cores to the GTX 1650, its performance is significantly worse.
+Furthermore, unlike on the other devices, offloading stimuli delivery to the GPU improves the performance significantly.
+The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
+Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point maths whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs.
+This is particularly beneficial for SNN simulations where there is a significant amount of integer maths involved in indexing sparse matrix data structures etc interspersed between the floating point computation.
+Furthermore, the large performance improvement seen when offloading stimuli delivery to the GPU is likely to be due to overheads relating to the Windows Display Driver Model~(WDDM).\todo{convince NSight systems to work and get WDDM stats}.
 
 \section{Discussion}
 discuss!
