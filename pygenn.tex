@@ -33,8 +33,9 @@
 
 \def\keyFont{\fontsize{8}{11}\helveticabold }
 \def\firstAuthorLast{Knight and Nowotny} %use et al only if is more than 1 author
-\def\Authors{James C Knight\,$^{1,*}$, Anton Komissarov, Thomas Nowotny\,$^{1}$}
-\def\Address{$^{1}$Centre for Computational Neuroscience and Robotics, School of Engineering and Informatics, University of Sussex, Brighton, United Kingdom }
+\def\Authors{James C Knight\,$^{1,*}$, Anton Komissarov\,$^{2}$, Thomas Nowotny\,$^{1}$}
+\def\Address{$^{1}$Centre for Computational Neuroscience and Robotics, School of Engineering and Informatics, University of Sussex, Brighton, United Kingdom  \\
+$^{2}$\todo{Anton's affiliatino}}
 \def\corrAuthor{James C Knight}
 \def\corrEmail{J.C.Knight@sussex.ac.uk}
 
@@ -68,17 +69,20 @@ As a primary goal, the abstract should render the general significance and conce
    parallel computing, benchmarking, computational neuroscience, spiking neural networks, Python} %All article types: you may provide up to 8 keywords; at least 5 are mandatory.
 \end{abstract}
 
+
+
+  
 \section{Introduction}
-A wide range of spiking neural network~(SNN) simulators are available, each with their own niche. 
-NEST~\citep{Gewaltig2007} is widely used for large-scale point neuron simulations on distributed computing systems; NEURON~\citep{carnevale2006neuron} and Arbor~\citep{Akar2019} specialise in the simulation of complex multi-compartmental models; and CARLsim~\citep{Chou2018}, NeuronGPU~\citep{Golosio2020} and GeNN~\citep{Yavuz2016} use Graphics Processing Units~(GPUs) to accelerate point neuron models.
+A wide range of spiking neural network~(SNN) simulators are available, each with their own application domains. 
+NEST~\citep{Gewaltig2007} is widely used for large-scale point neuron simulations on distributed computing systems; NEURON~\citep{carnevale2006neuron} and Arbor~\citep{Akar2019} specialise in the simulation of complex multi-compartmental models; NeuroKernel~\citep{Givon2016} is focused on emulating fly brain circuits using Graphics Processing Units~(GPUs); and CARLsim~\citep{Chou2018}, ANNarchy~\citep{Dinkelbach2015}, NeuronGPU~\citep{Golosio2020} and GeNN~\citep{Yavuz2016} use GPUs to accelerate point neuron models. 
 For performance reasons, many of these simulators are written in C++ and, especially amongst the older simulators, users describe their models either using a Domain-Specific Language~(DSL) or directly in C++.
 For programming language purists, a DSL may be an elegant way of describing an SNN network model and, for simulator developers, not having to add bindings to another language is convenient.
 However, both choices act as a barrier to potential users.
 Therefore, with both the computational neuroscience and machine learning communities gradually coalescing towards a Python-based ecosystem with a wealth of mature libraries for scientific computing~\citep{Hunter2007,VanDerWalt2011,Millman2011}, exposing spiking neural network simulators to Python seems a pragmatic choice.
-NEST~\citep{Eppler2009}, Neuron~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now offer a Python interface.
+NEST~\citep{Eppler2009}, NEURON~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now offer a Python interface.
 Furthermore, newer simulators such as Arbor and Brian2~\citep{Stimberg2019} have been designed from the ground up with a Python interface.
 
-While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using our GeNN simulator~(Yavuz2016), it has not been usable directly from Python.
+While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using our GeNN simulator~(Yavuz2016), it has so far not been usable directly from Python.
 GeNN can already be used as a backend for the Python-based Brian2 simulator~\citep{Stimberg2019} but, while Brian2GeNN~\citep{Stimberg2020} allows Brian2 users to harness the performance benefits GeNN provides, it is not possible to expose all of GeNN's unique features to Python through the Brian2 API.
 Specifically, GeNN not only allows users to easily define their own neuron and synapse models but, also `snippets' for offloading the potentially costly initialisation of model parameters and connectivity onto the GPU.
 Additionally, GeNN  provides a lot of freedom for users to integrate their own code into the simulation loop.
@@ -87,9 +91,9 @@ While implementing new neuron and synapse models in the majority of other GPU si
 Finally, we demonstrate the flexibility and performance of PyGeNN in two scenarios where minimising performance overheads is particularly critical.
 \begin{itemize}
     \item In a simulation of a large, highly-connected model of a cortical microcircuit~\citep{Potjans2012} with small simulation timesteps. Here the cost of copying spike data off the GPU from a large number of neurons every timestep can become a bottleneck.
-    \item In a simulation of a much smaller model of Pavlovian conditioning~\citep{Izhikevich2007} where learning occurs over \SI{1}{\hour} of biological time and stimuli is delivered -- following a complex scheme -- throughout the simulation. Here any overheads are multiplied by a large number of timesteps and copying stimuli to the GPU can become a bottleneck.
+    \item In a simulation of a much smaller model of Pavlovian conditioning~\citep{Izhikevich2007} where learning occurs over \SI{1}{\hour} of biological time and stimuli are delivered -- following a complex scheme -- throughout the simulation. Here any overheads are multiplied by a large number of timesteps and copying stimuli to the GPU can become a bottleneck.
 \end{itemize}
-Using the facilities provided by PyGeNN, we show that both scenarios can be simulated from Python with only minimal overheads over a C++ implementation.
+Using the facilities provided by PyGeNN, we show that both scenarios can be simulated from Python with only minimal overheads over a pure C++ implementation.
 
 \section{Materials and Methods}
 \subsection{GeNN}
@@ -98,7 +102,7 @@ GeNN~\citep{Yavuz2016} is a library for generating CUDA code for the simulation 
 GeNN handles much of the complexity of using CUDA directly as well as automatically performing device-specific optimizations so as to to maximize performance.
 
 GeNN consists of a main library -- implementing the API used to define models as well as the generic parts of the code generator -- and an additional library for each backend (currently there is a reference C++ backend for generating CPU code and a CUDA backend. An OpenCL backend is under development).
-Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of 4 Izhikevich neurons with heterogeneous parameters, driven be a constant input current might be defined as follows:
+Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of 4 Izhikevich neurons with heterogeneous parameters, driven by a constant input current might be defined as follows:
 %
 \begin{lstlisting}[language=C++]
 void modelDefinition(ModelSpec &model)
@@ -119,10 +123,11 @@ void modelDefinition(ModelSpec &model)
         "CS", "Neurons", csParams, {});
 }
 \end{lstlisting}
+\todo{``Neurons'' should be ``Pop'' or vice versa?? Is it neceesary to define csParams, or could the ``10.0'' literal be used for simplicity?}
 %
 The \emph{genn-buildmodel} command line tool is then used to compile this file; link it against the main GeNN library and the desired backend library; and finally run the resultant executable to generate the source code required to build a simulation dynamic library (a .dll file on Windows or a .so file on Linux and Mac).
-This dynamic library can then either be statically linked against a simulation loop provided by the user or dynamically loaded by the users simulation code.
-To demonstrate this latter approach, this example uses the \lstinline{SharedLibraryModel} helper class supplied with GeNN to dynamically loads the previously defined model, initialise the heterogenous neuron parameters and print each neuron's membrane voltage every timestep: 
+This dynamic library can then either be statically linked against a simulation loop provided by the user or dynamically loaded by the user's simulation code.
+To demonstrate this latter approach, this example uses the \lstinline{SharedLibraryModel} helper class supplied with GeNN to dynamically load the previously defined model, initialise the heterogenous neuron parameters and print each neuron's membrane voltage every timestep: 
 %
 \begin{lstlisting}[language=C++]
 #include "sharedLibraryModel.h"
@@ -156,7 +161,7 @@ int main()
 In order to use GeNN from Python, both the model creation API and the \lstinline{SharedLibraryModel} functionality need to be `wrapped' so they can be called from Python.
 While this is possible using the API built into Python itself, a wrapper function would need to be manually implemented for each GeNN function to be exposed which would result in a lot of maintenance overhead.
 Instead, we chose to use SWIG~\citep{Beazley1996} to automatically generate wrapper functions and classes. 
-SWIG generates Python modules based on special interface files which can directly include C++ code as well as special `directives' which directly control SWIG:
+SWIG generates Python modules based on special interface files which can directly include C++ code as well as special `directives' which control SWIG, for instance:
 %
 \begin{lstlisting}[language=C++]
 %module(package="package") package
@@ -198,7 +203,7 @@ The ability to extend this system to Python was a key requirement of PyGeNN and,
 \subsection{PyGeNN}
 \label{sec:methods/pygenn}
 While GeNN \emph{could} be used from Python via the wrapper generated using the techniques described in the previous section, the resultant code would be unpleasant to use directly.
-For example, rather than being able to specify neuron parameters using a native Python data structure such as a list or dictionary, you have to use a wrapped type such as \lstinline{DoubleVector([0.25, 10.0, 0.0, 0.0, 20.0, 2.0, 0.5])}.
+For example, rather than being able to specify neuron parameters using a native Python data structure such as a list or dictionary, one would have to use a wrapped type such as \lstinline{DoubleVector([0.25, 10.0, 0.0, 0.0, 20.0, 2.0, 0.5])}.
 To provide a more user-friendly and pythonic interface, we have built PyGeNN on top of the wrapper generated by SWIG.
 PyGeNN combines the separate model building and simulation stages of building a GeNN model in C++ into a single API, likely to be more familiar to users of existing Python-based model description languages such as PyNEST~\citep{Eppler2009} or PyNN~\citep{Davison2008}.
 By combining the two stages together, PyGeNN can provide a unified dictionary-based API for initialising homogeneous and heterogeneous parameters as shown in this re-implementation of the previous example:
@@ -228,10 +233,11 @@ while model.t < 200.0:
     model.pull_state_from_device("Neurons")
     print("%t, %f, %f, %f, %f" % (model.t, v[0], v[1], v[2], v[3]))
 \end{lstlisting}
+\todo{Same ``Neurons'' versus ``Pop'' confusion or am I missing something?}
 %
-Initialisation of variables with homogeneous values -- such as the neuron's membrane voltage -- is performed by GeNN and those with heterogeneous values -- such as the \lstinline{a}, \lstinline{b} and \lstinline{c} parameters -- are initialised by PyGeNN when the model is loaded.
+Initialisation of variables with homogeneous values -- such as the neurons' membrane potential -- is performed by GeNN and those with heterogeneous values -- such as the \lstinline{a}, \lstinline{b} and \lstinline{c} parameters -- are initialised by PyGeNN when the model is loaded.
 While the PyGeNN API is more pythonic and, hopefully, more user-friendly than the C++ interface, it still provides users with the same low-level control over the simulation.
-Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially additional expensive copying of data is required.
+Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially expensive additional copying of data is required.
 \todo{defining new neuron models, parameters and variables}
 %
 \begin{figure}
@@ -265,19 +271,19 @@ While efficiently handling spikes stored in a bitfield is a little trickier than
     \end{center}
     \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
     `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
-    The dotted horizontal line indicates realtime performance}
+    The dashed horizontal line indicates realtime performance}
     \label{fig:microcircuit_overheads}
 \end{figure}
 %
 \subsection{Cortical microcircuit model}
 \label{sec:methods/cortical_microcircuit}
-\citet{Potjans2012} developed this model of \SI{1}{\milli\metre\cubed} of early-sensory cortex.
+\citet{Potjans2012} developed a cortical microcircuit model of \SI{1}{\milli\metre\cubed} of early-sensory cortex.
 The model consists of \num{77169} LIF neurons, divided into separate populations representing the excitatory and inhibitory population in each of 4 cortical layers~(2/3, 4, 5 and 6) as illustrated by figure~\ref{fig:potjans_circuit}.
 Neurons in each population are connected randomly with numbers of synapses derived from an extensive review of the anatomical literature.
 Within each synaptic projection, all synaptic strengths and transmission delays are normally distributed and, in total, the model has approximately \num{0.3E9} synapses.
-As well as receiving synaptic input, each neuron in the network also receives an independent Poisson input current, representing input from neighbouring un-modelled cortical regions.
+As well as receiving synaptic input, each neuron in the network also receives an independent Poisson input current, representing input from neighbouring not explicitly modelled cortical regions.
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
-This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly significant.
+This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
 
 \subsection{Pavlovian conditioning model}
 \label{sec:methods/izhikevich}
@@ -290,7 +296,7 @@ Longer simulations are particularly useful when exploring synaptic plasticity so
 In this experiment, \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the neurons in a \num{800} neuron excitatory population and a \num{200} neuron inhibitory population.
 Excitatory neurons are modelled as regular-spiking Izhikevich neurons~\citep{Izhikevich2003a} and inhibitory neurons as fast-spiking Izhikevich neurons~\citep{Izhikevich2003a}.
 Stimuli are presented to the network in a random order, separated by intervals sampled from $U(100, 300) \si{\milli\second}$.
-The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in additional to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron throughout the simulation.
+The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in addition to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron throughout the simulation.
 $S_{1}$ is arbitrarily chosen as the Conditional Stimuli~(CS) and, whenever this stimuli is presented, a reward in the form of an increase in dopamine is delivered to all the plastic synapses in the network after a delay sampled from $U(0, 1000) \si{\milli\second}$.
 This delay period is large enough to allow a few irrelevant stimuli to be presented which act as distractors.
 \todo{talk more about model/learning rule/refer back to old paper}.
@@ -306,14 +312,14 @@ stim_noise_model = genn_model.create_custom_current_source_class(
         $(injectCurrent, $(iExt) + ($(gennrand_uniform) * $(n) * 2.0) - $(n));
         """)
 \end{lstlisting}
-where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses cuRAND~\todo{cite} to sample from $U(0,1)$. 
+where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses the cuRAND~\todo{cite} pseudo-random number generators to sample from $U(0,1)$. 
 Once a current source population using this model has been instantiated and a memory view to \lstinline{iExt} obtained in the manner described in section~\ref{sec:methods/pygenn}, in timesteps when stimulus injection is required, current can be injected into the list of neurons contained in \lstinline{stimuli_input_set} with:
 \begin{lstlisting}[language=python]
 curr_ext_view[stimuli_input_set] = 40.0
 curr_pop.push_var_to_device("iExt")
 \end{lstlisting}
 The same approach can then be used to zero the current afterwards.
-However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, in order to reduce potential overheads, we can offload the stimuli delivery entirely to the GPU using the following slightly more complex model:
+However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, in order to reduce potential overheads, we can offload the stimulus delivery entirely to the GPU using the following slightly more complex model:
 \begin{lstlisting}[language=python]
 stim_noise_model = genn_model.create_custom_current_source_class(
     "stim_noise",
@@ -340,7 +346,7 @@ curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
 \end{lstlisting}
 
 \section{Results}
-In the following subsection we will analyse the performance of the models introduced in sections~\ref{sec:methods/cortical_microcircuit}~and~\ref{sec:methods/izhikevich} on a representative selection of NVIDIA GPU hardware:
+In the following subsections we will analyse the performance of the models introduced in sections~\ref{sec:methods/cortical_microcircuit}~and~\ref{sec:methods/izhikevich} on a representative selection of NVIDIA GPU hardware:
 %
 \begin{itemize}
     \item Jetson Xavier NX -- a low-power embedded system with a GPU based on the Volta architecture with \SI{8}{\giga\byte} of shared memory.
@@ -352,17 +358,16 @@ In the following subsection we will analyse the performance of the models introd
 All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 Ti which runs Windows 10.
 
 \subsection{Cortical microcircuit model performance}
-Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit mode and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
+Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
 However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce GTX 1650 and Titan RTX respectively, it still performs impressively.
 
-The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
-However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead').
+The time taken to actually simulate the models (`Neuron simulation'/blue and `Synapse simulation'/orange) are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
+However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead'/green).
 Because Python is an interpreted language, such operations are inherently slower -- this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
 Unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data doesn't have to be copied between GPU and CPU memory and can instead by accessed by both.
 \todo{run xavier NX without recording and without zero copy}
 While, using this shared memory for recording spikes, reduces the overheads associated with copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
-However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10.
-This now means that, on the high-end desktop GPU, this simulation now runs faster than real-time -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019} and significantly faster than other recently published GPU simulators~\citep{Golosio2020}.
+However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10. Intrguingly, the overhead is now identical between Python and C++. Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019} and significantly faster than other recently published GPU simulators~\citep{Golosio2020}.
 %
 \begin{figure}[h!]
     \begin{center}
@@ -371,7 +376,7 @@ This now means that, on the high-end desktop GPU, this simulation now runs faste
     \caption{Results of Pavlovian conditioning experiment.
              Raster plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
              Downward green arrows indicate times at which CS is delivered and downward black arrows indicate times when other, un-rewarded stimuli are delivered. 
-             Vertical dashed lines indicate times at which dopamine is delivered.}
+             Vertical dashed lines indicate times at which dopamine is delivered.\todo{I think it would be good to show a cumulative spike count/ cumulative rate as a ``thin'' second panel below each raster, so people can appreciate, how the rewarded stimulus sticks out after training.}}
     \label{fig:izhikevich_spikes}
 \end{figure}
 %
@@ -385,12 +390,12 @@ This now means that, on the high-end desktop GPU, this simulation now runs faste
 \end{figure}
 %
 \subsection{Pavlovian conditioning performance}
-Figure~\ref{fig:izhikevich_spikes} shows the results of an example simulation of this model.
-At the beginning of each simulation (Figure~\ref{fig:izhikevich_spikes}A), the neurons representing every stimuli respond equally.
-However, after \SI{1}{\hour} of simulation, the response to the CS becomes much stronger (Figure~\ref{fig:izhikevich_spikes}B) -- showing that these neurons have been selectively associated even in the presence of the distractors and delayed reward.
+Figure~\ref{fig:izhikevich_spikes} shows the results of an example simulation of the Pavlovian conditioning model.
+At the beginning of each simulation (Figure~\ref{fig:izhikevich_spikes}A), the neurons representing every stimulus respond equally.
+However, after \SI{1}{\hour} of simulation, the response to the CS becomes much stronger (Figure~\ref{fig:izhikevich_spikes}B) -- showing that these neurons have been selectively associated with the stimulus even in the presence of the distractors and the delayed reward.
 
-Figure~\ref{fig:izhikevich} shows the performance of simulations of this model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
-These PyGeNN results are compared to a C++ simulation which takes advantage of both optimizations.
+Figure~\ref{fig:izhikevich} shows the runtime performance for simulations of thisthe Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
+These PyGeNN results are compared to a C++ simulation which also takes advantage of both optimizations.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
 This is because, as discussed previously, this model is simply not large enough to fill the \num{4608} CUDA cores present on the Titan RTX.
 Therefore, as the two GPUs share the same Turing architecture and have very similar clock speeds (\SIrange{1350}{1770}{\mega\hertz} for the Titan RTX and \SIrange{1485}{1665}{\mega\hertz} for the GTX 1650), the two GPUs perform very similarly.
@@ -399,9 +404,10 @@ However, the GTX 1050 Ti performs rather differently.
 Although the clock speed of this device is approximately the same as the other GPUs (\SIrange{1290}{1392}{\mega\hertz}) and it has a similar number of CUDA cores to the GTX 1650, its performance is significantly worse.
 Furthermore, unlike on the other devices, offloading stimuli delivery to the GPU improves the performance significantly.
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
-Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point maths whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs.
-This is particularly beneficial for SNN simulations where there is a significant amount of integer maths involved in indexing sparse matrix data structures etc interspersed between the floating point computation.
-Furthermore, the large performance improvement seen when offloading stimuli delivery to the GPU is likely to be due to overheads relating to the Windows Display Driver Model~(WDDM).\todo{convince NSight systems to work and get WDDM stats}.
+Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs.
+This is particularly beneficial for SNN simulations which involve a significant amount of integer arithmetic for indexing sparse matrix data structures etc, that is interspersed between the floating point computations needed to determine neuron and synapse states.
+Furthermore, the large performance improvement seen when offloading stimulus delivery to the GPU is likely to be due to overheads relating to the Windows Display Driver Model~(WDDM).\todo{convince NSight systems to work and get WDDM stats}.
+\todo{Why does here a difference remain between Python and C++ (presumably in the overheads?; would be nice to be able to see the neuron, synapse, overheads split here as well!)}
 
 \section{Discussion}
 discuss!
