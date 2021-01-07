@@ -241,7 +241,7 @@ Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host me
     The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
     Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
     All excitatory synaptic weights are initialised to \SI{0.04561}{\nano\ampere} and all inhibitory synaptic weights are initialised to \SI{0.22805}{\nano\ampere}.}
-    \label{fig:balanced_random_circuit}
+    \label{fig:potjans_circuit}
 \end{figure}
 %
 \subsection{Spike recording system}
@@ -280,7 +280,7 @@ The membrane voltage $V_{i}$ of each neuron $i$ is modelled as
 where $\tau_{\text{m}} = \SI{10}{\milli\second}$ and $R_{\text{m}} = \SI{40}{\mega\ohm}$ represent the time constant and resistance of the neuron's cell membrane, $V_{\text{rest}} = \SI{-65}{\milli\volt}$ defines the resting potential, $I_{\text{syn}_{i}}$ represents the synaptic input current and $I_{\text{ext}_i}$ represents an external input current.
 When the membrane voltage crosses a threshold~$V_{\text{th}} = \SI{-50}{\milli\volt}$ a spike is emitted, the membrane voltage is reset to $V_{\text{rest}}$ and updating of $V$ is suspended for a refractory period $\tau_{\text{ref}} = \SI{2}{\milli\second}$.
 Neurons in each population are connected randomly with numbers of synapses derived from an extensive review of the anatomical literature.
-These synapses are current-based, i.e.~pre-synaptic spikes lead to exponentially-decaying input currents $I_{\text{syn}_{i}}$
+These synapses are current-based, i.e.~presynaptic spikes lead to exponentially-decaying input currents $I_{\text{syn}_{i}}$
 %
 \begin{align}
     \tau_{\text{syn}} \frac{dI_{\text{syn}_{i}}}{dt} = & -I_{\text{syn}_{i}} + \sum_{i=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}),\label{eq:exp_neuron_input_current}
@@ -306,15 +306,60 @@ The cortical microcircuit model described in the previous section is ideal for e
 However, the performance of longer simulations of smaller models is equally vital.\todo{determine e.g. percentage models e.g. on OpenSourceBrain which are small}.
 Such models can be particularly troublesome for GPU simulation as, not only might they not offer enough parallelism to fully occupy the device but, each timestep can be simulated so quickly that the overheads of launching kernels etc can dominate.
 Additional overheads can be incurred when models require injecting external stimuli throughout the simulation.
-\todo{something about neuromorphic systems often being real-time / BS accelerated time}
-Longer simulations are particularly useful when exploring synaptic plasticity so, to explore the performance of PyGeNN in this scenario, we simulate a model of Pavlovian conditioning using a three-factor STDP learning rule~\citep{Izhikevich2007}.
-In this experiment, \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the neurons in a \num{800} neuron excitatory population and a \num{200} neuron inhibitory population.
-Excitatory neurons are modelled as regular-spiking Izhikevich neurons~\citep{Izhikevich2003a} and inhibitory neurons as fast-spiking Izhikevich neurons~\citep{Izhikevich2003a}.
+Longer simulations are particularly useful when exploring synaptic plasticity so, to explore the performance of PyGeNN in this scenario, we simulate a model of Pavlovian conditioning using a three-factor Spike-Timing-Dependent Plasticity~(STDP) learning rule~\citep{Izhikevich2007}.
+This model consists of an \num{800} neuron excitatory population and a \num{200} neuron inhibitory population, within which, each neuron $i$ is modelled using the Izhikevich model~\citep{Izhikevich2003a} whose dimensionless membrane voltage $V_{i}$ and adaption variables $U_i$ evolve such that:
+%
+\begin{align}
+    \frac{dV_i}{dt} = & 0.04 V_i^2 + 5V_i + 140 - U_i + I_{\text{syn}_{i}} + I_{\text{ext}_{i}} \\
+    \frac{dU_i}{dt} = & a(b V_i - U_i)
+\end{align}
+%
+When the membrane voltage rises above 30, a spike is emitted and $V_i$ is reset to $c$ and $d$ is added to $U_i$.
+Excitatory neurons use the regular-spiking parameters~\citep{Izhikevich2003a} where $a = 0.02$, $b = 0.2$, $c = -65.0$, $d = 8.0$ and inhibitory neurons use the fast-spiking parameters~\citep{Izhikevich2003a} where $a = 0.1$, $b = 0.2$, $c = -65.0$, $d = 2.0$.
+Again, $I_{\text{syn}_{i}}$ represents the synaptic input current and $I_{\text{ext}_i}$ represents an external input current.
+The neural populations are connected recurrently, as shown in figure~\ref{fig:potjans_circuit}, with instantaneous current-based synapses:
+%
+\begin{align}
+    I_{\text{syn}_{i}}(t) = & \sum_{i=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}),
+\end{align}
+%
+where $t_{j}$ are the arrival times of incoming spikes from $n$ presynaptic neurons.
+Inhibitory synapses are static with $w_{ij} = -1.0$ and excitatory synapses are plastic.
+Each plastic synapse has an eligibility trace $C_{ij}$ as well as a synaptic weight $w_{ij}$ and these evolve according to a three-factor STDP learning rule~\citep{Izhikevich2007}:
+%
+\begin{align}
+    \frac{dC_{ij}}{dt} = & -\frac{C_{ij}}{\tau_c} + \text{STDP}(\Delta t)\delta(t - t_\text{pre/post}) \\
+    \frac{dw_{ij}}{dt} = & -C_{ij}D_j
+\end{align}
+%
+where $\tau_c=\SI{1000}{\milli\second}$ represents the decay time constant of the eligibility trace and $STDP(\Delta t)$ describes the magnitude of changes made to the eligibility trace based on the relative timing of a pair of pre and postsynaptic spikes with temporal difference $\Delta t=t_{post}-t_{pre}$.
+These changes are only applied to the trace at the times of pre and postsynaptic spikes as indicated by the Dirac delta function $\delta(t-t_\text{pre/post})$.
+Here, a double exponential STDP kernel is employed such that:
+%
+\begin{align}
+    \text{STDP}(\Delta t) & = \
+        \begin{cases}
+          \exp\left(-\frac{\Delta t}{\tau_{+}}\right) & if\, \Delta t>0\\
+          \exp\left(\frac{\Delta t}{\tau_{-}}\right) & if\, \Delta t\leq0
+        \end{cases} \label{eq:stdp_pair}
+\end{align}
+%
+where $\tau_{+}=\tau_{-}=\SI{20}{\milli\second}$.
+Finally, each excitatory neuron has an additional variable $D_j$ which describes extracellular dopamine concentration:
+%
+\begin{align}
+    \frac{D_{j}}{t} = & -\frac{D_{j}}{\tau_d} + \text{DA}(t)
+\end{align}
+%
+where $\tau_d=\SI{200}{\milli\second}$ represents the time constant of dopamine uptake and $\text{DA}(t)$ the dopamine input over time.
+
+In this experiment, \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the two neural populations.
 Stimuli are presented to the network in a random order, separated by intervals sampled from $U(100, 300) \si{\milli\second}$.
-The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in addition to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron throughout the simulation.
+The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in addition to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron via $I_{\text{ext}_{i}}$ throughout the simulation.
 $S_{1}$ is arbitrarily chosen as the Conditional Stimuli~(CS) and, whenever this stimuli is presented, a reward in the form of an increase in dopamine is delivered to all the plastic synapses in the network after a delay sampled from $U(0, 1000) \si{\milli\second}$.
 This delay period is large enough to allow a few irrelevant stimuli to be presented which act as distractors.
 \todo{talk more about model/learning rule/refer back to old paper}.
+
 The simplest way to implement this stimulation regime is to add a current source to the excitatory and inhibitory neuron populations which adds the uniformly-distributed input current to an externally-controllable per-neuron current.
 In PyGeNN, the following model can be defined to do just that:
 \begin{lstlisting}[language=python]
@@ -432,6 +477,7 @@ discuss!
     \item Turing architecture is great for GeNN! Presented results improve on state-of-the-art.
     \item PyGeNN as an intermediate layer - PyNN, ML
     \item Cost of C++ - Python calls in models
+    \item something about neuromorphic systems often being real-time / BS accelerated time
 \end{itemize}
 
 \section*{Conflict of Interest Statement}
