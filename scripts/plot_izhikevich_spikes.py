@@ -1,5 +1,6 @@
-from matplotlib import gridspec as gs
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gs
+from matplotlib.patches import ConnectionPatch
 from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import sys
@@ -15,15 +16,39 @@ bin_s = 0.05
 display_time = 2000
 raster_rate_ratio = 4
 pal = sns.color_palette("deep")
+sigma = 10.0
 
+def make_sdf(sT, t0, tmax, dt, sigma):
+    n= int((tmax-t0)/dt)
+    sdfs= np.zeros(n)
+    kwdt= 3*sigma
+    i= 0
+    x= np.arange(-kwdt,kwdt,dt)
+    x= np.exp(-np.power(x,2)/(2*sigma*sigma))
+    x= x/(sigma*np.sqrt(2.0*np.pi))*1000.0
+    if sT is not None:
+        for t in sT: 
+            left= int((t-t0-kwdt)/dt)
+            right= int((t-t0+kwdt)/dt)
+            sdfs[left:right]+=x
+
+    return sdfs
+    
 def get_masks(times):
     return (np.where(times < 50000),
             np.where(times > (duration_ms - 50000)))
 
-def plot_reward(axis, times, max_val):
-    axis.vlines(times / 1000.0, 0, max_val, 
-                linestyle="--", linewidth=2, color=pal[4])
-
+def get_sdf_masks(times, sigma):
+    return (np.where((times > (3.0 * sigma)) & (times < (50000 - (3.0 * sigma)))),
+            np.where((times > (duration_ms - 50000 + (3.0 * sigma))) & (times < (duration_ms - (3.0 * sigma)))))
+    
+def plot_reward(figure, axis_top, axis_bottom, times):
+    for t in times:
+        patch = ConnectionPatch(xyA=(t / 1000, num_neurons), coordsA=axis_top.transData,
+                                xyB=(t / 1000, -2), coordsB=axis_bottom.transData,
+                                linestyle="--", linewidth=2, color=pal[4])
+        figure.add_artist(patch)
+    
 def plot_stimuli(axis, times, ids):
     for t, i in zip(times, ids):
         colour = pal[2] if i == 0 else "black"
@@ -55,6 +80,9 @@ reward_times = np.loadtxt("izhikevich_reward_times.csv", dtype=np.float)
 # Get masks for events in first and last seconds
 e_spike_first_second, e_spike_last_second = get_masks(e_spikes["time"])
 i_spike_first_second, i_spike_last_second = get_masks(i_spikes["time"])
+e_spike_sdf_first_second, e_spike_sdf_last_second = get_sdf_masks(e_spikes["time"], sigma)
+i_spike_sdf_first_second, i_spike_sdf_last_second = get_sdf_masks(i_spikes["time"], sigma)
+
 stimuli_first_second, stimuli_last_second = get_masks(stimuli["time"])
 reward_times_first_second, reward_times_last_second = get_masks(reward_times)
 
@@ -96,26 +124,22 @@ last_second_rate_axis = figure.add_subplot(last_second_gs[raster_rate_ratio])
 axes = [first_second_raster_axis, first_second_rate_axis, last_second_raster_axis, last_second_rate_axis]
 
 # Plot spikes that occur in first second
-first_second_bins = np.arange(0.0, 50.0, bin_s)
-first_second_spikes = np.concatenate((e_spikes["time"][e_spike_first_second] / 1000.0, i_spikes["time"][i_spike_first_second] / 1000.0))
-first_second_rates = np.histogram(first_second_spikes, bins=first_second_bins)[0] * (1.0 / bin_s) * (1.0 / num_neurons)
-
+first_second_sdf_spikes = np.concatenate((e_spikes["time"][e_spike_sdf_first_second], i_spikes["time"][i_spike_sdf_first_second]))
+first_second_sdf = make_sdf(first_second_sdf_spikes, 0.0, 50000.0, 1.0, sigma) / num_neurons
 first_second_raster_axis.scatter(e_spikes["time"][e_spike_first_second] / 1000.0, e_spikes["id"][e_spike_first_second], 
                                  s=1, edgecolors="none", color=pal[3], rasterized=True)
 first_second_raster_axis.scatter(i_spikes["time"][i_spike_first_second] / 1000.0, i_spikes["id"][i_spike_first_second] + num_excitatory, 
                                  s=1, edgecolors="none", color=pal[0], rasterized=True)
-first_second_rate_axis.bar(first_second_bins[:-1], first_second_rates, width=bin_s, align="edge")
+first_second_rate_axis.plot(np.arange(0.0, 50.0, 1.0 / 1000.0), first_second_sdf)
 
 # Plot spikes that occur in final second
-last_second_bins = np.arange((duration_ms - 50000.0) / 1000.0, duration_ms / 1000.0, bin_s)
-last_second_spikes = np.concatenate((e_spikes["time"][e_spike_last_second] / 1000.0, i_spikes["time"][i_spike_last_second] / 1000.0))
-last_second_rates = np.histogram(last_second_spikes, bins=last_second_bins)[0] * (1.0 / bin_s) * (1.0 / num_neurons)
-
+last_second_sdf_spikes = np.concatenate((e_spikes["time"][e_spike_sdf_last_second], i_spikes["time"][i_spike_sdf_last_second]))
+last_second_sdf = make_sdf(last_second_sdf_spikes, duration_ms - 50000.0, duration_ms, 1.0, sigma) / num_neurons
 last_second_raster_axis.scatter(e_spikes["time"][e_spike_last_second] / 1000.0, e_spikes["id"][e_spike_last_second], 
                                 s=1, edgecolors="none", color=pal[3], rasterized=True)
 last_second_raster_axis.scatter(i_spikes["time"][i_spike_last_second] / 1000.0, i_spikes["id"][i_spike_last_second] + num_excitatory, 
                                 s=1, edgecolors="none", color=pal[0], rasterized=True)
-last_second_rate_axis.bar(last_second_bins[:-1], last_second_rates, width=bin_s, align="edge")
+last_second_rate_axis.plot(np.arange((duration_ms - 50000.0) / 1000.0, duration_ms / 1000.0, 1.0 / 1000.0), last_second_sdf)
 
 # Remove axis junk
 for ax in axes:
@@ -135,10 +159,10 @@ configure_axis_ticks(first_second_rate_axis, min_first_second, max_first_second)
 configure_axis_ticks(last_second_raster_axis, min_last_second, max_last_second)
 configure_axis_ticks(last_second_rate_axis, min_last_second, max_last_second)
 
-first_second_rate_axis.set_yticks([0, 10, 20])
-first_second_rate_axis.set_ylim((0, 30))
-last_second_rate_axis.set_yticks([0, 10, 20])
-last_second_rate_axis.set_ylim((0, 30))
+first_second_rate_axis.set_yticks([0, 20, 40])
+first_second_rate_axis.set_ylim((-2, 55))
+last_second_rate_axis.set_yticks([0, 20, 40])
+last_second_rate_axis.set_ylim((-2, 55))
 
 first_second_rate_axis.xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
 last_second_rate_axis.xaxis.set_major_formatter(FormatStrFormatter("%.1f"))
@@ -146,8 +170,8 @@ first_second_raster_axis.set_ylim((0, num_neurons))
 last_second_raster_axis.set_ylim((0, num_neurons))
 first_second_raster_axis.set_ylabel("Neuron number")
 last_second_raster_axis.set_ylabel("Neuron number")
-first_second_rate_axis.set_ylabel("Rate\n[spike/s]")
-last_second_rate_axis.set_ylabel("Rate\n[spike/s]")
+first_second_rate_axis.set_ylabel("Mean rate [Hz]")
+last_second_rate_axis.set_ylabel("Mean rate [Hz]")
 first_second_rate_axis.set_xlabel("Time [s]")
 last_second_rate_axis.set_xlabel("Time [s]")
 
@@ -161,13 +185,11 @@ figure.align_ylabels(axes)
 figure.tight_layout(pad=0, rect=[0.0, 0.0, 0.99, 0.98], h_pad=1.0)
 
 # Plot reward times and rewarded stimuli that occur in first second
-plot_reward(first_second_raster_axis, reward_times[reward_times_first_second], num_neurons);
-plot_reward(first_second_rate_axis, reward_times[reward_times_first_second], 30);
+plot_reward(figure, first_second_raster_axis, first_second_rate_axis, reward_times[reward_times_first_second]);
 plot_stimuli(first_second_raster_axis, stimuli["time"][stimuli_first_second], stimuli["id"][stimuli_first_second])
 
 # Plot reward times and rewarded stimuli that occur in final second
-plot_reward(last_second_raster_axis, reward_times[reward_times_last_second], num_neurons);
-plot_reward(last_second_rate_axis, reward_times[reward_times_last_second], 30);
+plot_reward(figure, last_second_raster_axis, last_second_rate_axis, reward_times[reward_times_last_second]);
 plot_stimuli(last_second_raster_axis, stimuli["time"][stimuli_last_second], stimuli["id"][stimuli_last_second])
 
 if not plot_settings.presentation:
