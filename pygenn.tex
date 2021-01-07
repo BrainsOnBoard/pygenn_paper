@@ -240,7 +240,7 @@ Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host me
     \caption{Illustration of the balanced random network model.
     The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
     Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
-    All excitatory synaptic weights are initialised to \SI{0.04561}{\nano\ampere} and all inhibitory synaptic weights are initialised to \SI{0.22805}{\nano\ampere}.}
+    All excitatory synaptic weights are plastic and initialised to \num{1} and all inhibitory synaptic weights are initialised to \num{-1}.}
     \label{fig:potjans_circuit}
 \end{figure}
 %
@@ -356,7 +356,7 @@ where $\tau_d=\SI{200}{\milli\second}$ represents the time constant of dopamine 
 In this experiment, \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the two neural populations.
 Stimuli are presented to the network in a random order, separated by intervals sampled from $U(100, 300) \si{\milli\second}$.
 The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in addition to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron via $I_{\text{ext}_{i}}$ throughout the simulation.
-$S_{1}$ is arbitrarily chosen as the Conditional Stimuli~(CS) and, whenever this stimuli is presented, a reward in the form of an increase in dopamine is delivered to all the plastic synapses in the network after a delay sampled from $U(0, 1000) \si{\milli\second}$.
+$S_{1}$ is arbitrarily chosen as the Conditional Stimuli~(CS) and, whenever this stimuli is presented, a reward in the form of an increase in dopamine is delivered by setting $\text{DA}(t)=0.5$ after a delay sampled from $U(0, 1000) \si{\milli\second}$.
 This delay period is large enough to allow a few irrelevant stimuli to be presented which act as distractors.
 \todo{talk more about model/learning rule/refer back to old paper}.
 
