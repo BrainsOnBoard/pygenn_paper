@@ -357,7 +357,7 @@ Finally, each excitatory neuron has an additional variable $D_j$ which describes
 where $\tau_d=\SI{200}{\milli\second}$ represents the time constant of dopamine uptake and $\text{DA}(t)$ the dopamine input over time.
 We describe the implementation of event-driven learning in GeNN in our previous work~\citep{Knight2018} 
 
-
+The most efficient way to implement rules such as the three-factor STDP rule described above in GeNN is to
 
 \begin{lstlisting}[language=python]
 izhikevich_stdp_model = genn_model.create_custom_weight_update_class(
@@ -405,7 +405,7 @@ izhikevich_stdp_model = genn_model.create_custom_weight_update_class(
     is_prev_post_spike_time_required=True)
 \end{lstlisting}
 %
-Because $w_{ij}
+Because $w_{ij}$
 \citet{Mikaitis2018} showed how equations~\ref{eq:izhikevich_stdp_c},~\ref{eq:izhikevich_stdp_w}~and~\ref{eq:izhikevich_stdp_d} could be algebraically integrated, allowing $C_{ij}$, $w_{ij}$ and $D_j$ to be updated using the following event-based updated:
 %
 \begin{align}
