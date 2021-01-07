@@ -53,8 +53,8 @@ def plot_stimuli(axis, times, ids):
     for t, i in zip(times, ids):
         colour = pal[2] if i == 0 else "black"
         axis.annotate("", xy=(t / 1000.0, num_neurons), xycoords="data", color=colour,
-                      xytext=(0, 15.0), textcoords="offset points", annotation_clip=True, 
-                      arrowprops=dict(facecolor=colour, edgecolor=colour, headlength=6.0))
+                      xytext=(0, 10.0), textcoords="offset points", annotation_clip=True, 
+                      arrowprops=dict(facecolor=colour, edgecolor=colour, headlength=4.0))
 
 def read_spikes(filename):
     return np.loadtxt(filename, delimiter=",", skiprows=1,
@@ -182,7 +182,7 @@ figure.align_ylabels(axes)
 # **NOTE** for whatever reason, this doesn't play nicely with  
 # annotations so we need to do this first, manually making sure 
 # there is enough space BEFORE adding annotation
-figure.tight_layout(pad=0, rect=[0.0, 0.0, 0.99, 0.98], h_pad=1.0)
+figure.tight_layout(pad=0, rect=[0.0, 0.0, 0.99, 0.98], h_pad=0.9)
 
 # Plot reward times and rewarded stimuli that occur in first second
 plot_reward(figure, first_second_raster_axis, first_second_rate_axis, reward_times[reward_times_first_second]);
