@@ -271,9 +271,32 @@ While efficiently handling spikes stored in a bitfield is a little trickier than
 \label{sec:methods/cortical_microcircuit}
 \citet{Potjans2012} developed a cortical microcircuit model of \SI{1}{\milli\metre\cubed} of early-sensory cortex.
 The model consists of \num{77169} LIF neurons, divided into separate populations representing the excitatory and inhibitory population in each of 4 cortical layers~(2/3, 4, 5 and 6) as illustrated by figure~\ref{fig:potjans_circuit}.
+The membrane voltage $V_{i}$ of each neuron $i$ is modelled as
+%
+\begin{align}
+    \tau_{\text{m}} \frac{dV_{i}}{dt} = & (V_{\text{rest}} - V_{i}) + R_{\text{m}}(I_{\text{syn}_{i}} + I_{\text{ext}_{i}}), \label{eq:lif_neuron}
+\end{align}
+%
+where $\tau_{\text{m}} = \SI{10}{\milli\second}$ and $R_{\text{m}} = \SI{40}{\mega\ohm}$ represent the time constant and resistance of the neuron's cell membrane, $V_{\text{rest}} = \SI{-65}{\milli\volt}$ defines the resting potential, $I_{\text{syn}_{i}}$ represents the synaptic input current and $I_{\text{ext}_i}$ represents an external input current.
+When the membrane voltage crosses a threshold~$V_{\text{th}} = \SI{-50}{\milli\volt}$ a spike is emitted, the membrane voltage is reset to $V_{\text{rest}}$ and updating of $V$ is suspended for a refractory period $\tau_{\text{ref}} = \SI{2}{\milli\second}$.
 Neurons in each population are connected randomly with numbers of synapses derived from an extensive review of the anatomical literature.
-Within each synaptic projection, all synaptic strengths and transmission delays are normally distributed and, in total, the model has approximately \num{0.3E9} synapses.
+These synapses are current-based, i.e.~pre-synaptic spikes lead to exponentially-decaying input currents $I_{\text{syn}_{i}}$
+%
+\begin{align}
+    \tau_{\text{syn}} \frac{dI_{\text{syn}_{i}}}{dt} = & -I_{\text{syn}_{i}} + \sum_{i=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}),\label{eq:exp_neuron_input_current}
+\end{align}
+%
+where $\tau_{\text{syn}} = \SI{0.5}{\milli\second}$ represents the synaptic time constant and $t_{j}$ are the arrival times of incoming spikes from $n$ presynaptic neurons.
+Within each synaptic projection, all synaptic strengths and transmission delays are normally distributed using the parameters presented in \citet[table 5]{Potjans2012} and, in total, the model has approximately \num{0.3E9} synapses.
 As well as receiving synaptic input, each neuron in the network also receives an independent Poisson input current, representing input from neighbouring not explicitly modelled cortical regions.
+The Poisson input is delivered to each neuron via $I_{\text{ext}_{i}}$ with
+%
+\begin{align}
+    \tau_{\text{syn}} \frac{dI_{\text{ext}_{i}}}{dt} = & -I_{\text{ext}_{i}} + J \text{Poisson}(\nu_{\text{ext}} \Delta t),\label{eq:poisson_input_current}
+\end{align}
+%
+where $\tau_{\text{syn}}=\SI{0.5}{\milli\second}$, $\nu_{\text{ext}}$ represents the mean input rate and $J$ represents the weight.
+The ordinary differential equations~\ref{eq:lif_neuron},~\ref{eq:exp_neuron_input_current}~and~\ref{eq:poisson_input_current} are solved with an exponential Euler algorithm.
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
 
@@ -368,9 +391,9 @@ Furthermore, on the high-end desktop GPU, the simulation now runs faster than re
         \includegraphics{figures/izhikevich_spikes.pdf}
     \end{center}
     \caption{Results of Pavlovian conditioning experiment.
-             Raster plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
+             Raster and spike density plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
              Downward green arrows indicate times at which CS is delivered and downward black arrows indicate times when other, un-rewarded stimuli are delivered. 
-             Vertical dashed lines indicate times at which dopamine is delivered.\todo{I think it would be good to show a cumulative spike count/ cumulative rate as a ``thin'' second panel below each raster, so people can appreciate, how the rewarded stimulus sticks out after training.}}
+             Vertical dashed lines indicate times at which dopamine is delivered}
     \label{fig:izhikevich_spikes}
 \end{figure}
 %
