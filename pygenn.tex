@@ -310,14 +310,17 @@ Longer simulations are particularly useful when exploring synaptic plasticity so
 This model consists of an \num{800} neuron excitatory population and a \num{200} neuron inhibitory population, within which, each neuron $i$ is modelled using the Izhikevich model~\citep{Izhikevich2003a} whose dimensionless membrane voltage $V_{i}$ and adaption variables $U_i$ evolve such that:
 %
 \begin{align}
-    \frac{dV_i}{dt} = & 0.04 V_i^2 + 5V_i + 140 - U_i + I_{\text{syn}_{i}} + I_{\text{ext}_{i}} \\
-    \frac{dU_i}{dt} = & a(b V_i - U_i)
+    \frac{dV_i}{dt} = & 0.04 V_i^2 + 5V_i + 140 - U_i + I_{\text{syn}_{i}} + I_{\text{ext}_{i}} \label{eq:izhikevich_v} \\
+    \frac{dU_i}{dt} = & a(b V_i - U_i) \label{eq:izhikevich_u}
 \end{align}
 %
 When the membrane voltage rises above 30, a spike is emitted and $V_i$ is reset to $c$ and $d$ is added to $U_i$.
 Excitatory neurons use the regular-spiking parameters~\citep{Izhikevich2003a} where $a = 0.02$, $b = 0.2$, $c = -65.0$, $d = 8.0$ and inhibitory neurons use the fast-spiking parameters~\citep{Izhikevich2003a} where $a = 0.1$, $b = 0.2$, $c = -65.0$, $d = 2.0$.
 Again, $I_{\text{syn}_{i}}$ represents the synaptic input current and $I_{\text{ext}_i}$ represents an external input current.
-The neural populations are connected recurrently, as shown in figure~\ref{fig:potjans_circuit}, with instantaneous current-based synapses:
+While there are numerous ways to solve equations~\ref{eq:izhikevich_v}~and~\ref{eq:izhikevich_u}~\citep{Humphries2007,Hopkins2015,Pauli2018}, we chose to use the forward Euler integration scheme employed by \citet{Izhikevich2003a}.
+Under this scheme, equation~\ref{eq:izhikevich_v} is first integrated for two \SI{0.5}{\milli\second} timesteps and then, based on the updated value of $V_i$, equation~\ref{eq:izhikevich_u} is integrated for a single \SI{1}{\milli\second} timestep.
+
+The excitatory and inhibitory neural populations are connected recurrently, as shown in figure~\ref{fig:potjans_circuit}, with instantaneous current-based synapses:
 %
 \begin{align}
     I_{\text{syn}_{i}}(t) = & \sum_{i=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}),
@@ -328,8 +331,8 @@ Inhibitory synapses are static with $w_{ij} = -1.0$ and excitatory synapses are 
 Each plastic synapse has an eligibility trace $C_{ij}$ as well as a synaptic weight $w_{ij}$ and these evolve according to a three-factor STDP learning rule~\citep{Izhikevich2007}:
 %
 \begin{align}
-    \frac{dC_{ij}}{dt} = & -\frac{C_{ij}}{\tau_c} + \text{STDP}(\Delta t)\delta(t - t_\text{pre/post}) \\
-    \frac{dw_{ij}}{dt} = & -C_{ij}D_j
+    \frac{dC_{ij}}{dt} = & -\frac{C_{ij}}{\tau_c} + \text{STDP}(\Delta t)\delta(t - t_\text{pre/post}) \label{eq:izhikevich_stdp_c} \\
+    \frac{dw_{ij}}{dt} = & -C_{ij}D_j \label{eq:izhikevich_stdp_w}
 \end{align}
 %
 where $\tau_c=\SI{1000}{\milli\second}$ represents the decay time constant of the eligibility trace and $STDP(\Delta t)$ describes the magnitude of changes made to the eligibility trace based on the relative timing of a pair of pre and postsynaptic spikes with temporal difference $\Delta t=t_{post}-t_{pre}$.
@@ -339,27 +342,85 @@ Here, a double exponential STDP kernel is employed such that:
 \begin{align}
     \text{STDP}(\Delta t) & = \
         \begin{cases}
-          \exp\left(-\frac{\Delta t}{\tau_{+}}\right) & if\, \Delta t>0\\
-          \exp\left(\frac{\Delta t}{\tau_{-}}\right) & if\, \Delta t\leq0
+          A_{+}\exp\left(-\frac{\Delta t}{\tau_{+}}\right) & if\, \Delta t>0\\
+          A_{-}\exp\left(\frac{\Delta t}{\tau_{-}}\right) & if\, \Delta t\leq0
         \end{cases} \label{eq:stdp_pair}
 \end{align}
 %
-where $\tau_{+}=\tau_{-}=\SI{20}{\milli\second}$.
+where the time constant of the STDP window $\tau_{+}=\tau_{-}=\SI{20}{\milli\second}$ and the strength of potentiation and depression are $A_{+}=0.1$ and $A_{-}=0.15$ respectively.
 Finally, each excitatory neuron has an additional variable $D_j$ which describes extracellular dopamine concentration:
 %
 \begin{align}
-    \frac{D_{j}}{t} = & -\frac{D_{j}}{\tau_d} + \text{DA}(t)
+    \frac{D_{j}}{t} = & -\frac{D_{j}}{\tau_d} + \text{DA}(t) \label{eq:izhikevich_stdp_d}
 \end{align}
 %
 where $\tau_d=\SI{200}{\milli\second}$ represents the time constant of dopamine uptake and $\text{DA}(t)$ the dopamine input over time.
+We describe the implementation of event-driven learning in GeNN in our previous work~\citep{Knight2018} 
 
-In this experiment, \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the two neural populations.
+
+
+\begin{lstlisting}[language=python]
+izhikevich_stdp_model = genn_model.create_custom_weight_update_class(
+    "izhikevich_stdp",
+    
+    param_names=["tauPlus",  "tauMinus", "tauC", 
+                 "aPlus", "aMinus", "wMin", "wMax"],
+    var_name_types=[("w", "scalar"), ("c", "scalar")],
+
+    sim_code=
+        """
+        $(addToInSyn, $(w));
+
+        const scalar tc = fmax($(prev_sT_pre), 
+                               $(prev_sT_post));
+        
+        const scalar tagDecay = exp(-($(t) - tc) / $(tauC));
+        scalar newTag = $(c) * tagDecay;
+        
+        const scalar dt = $(t) - $(sT_post);
+        if (dt > 0) {
+            newTag -= ($(aMinus) * exp(-dt / $(tauMinus)));
+        }
+        $(c) = newTag;
+        """,
+    learn_post_code=
+        """
+        const scalar tc = fmax($(sT_pre), 
+                               $(prev_sT_post));
+        
+        const scalar tagDecay = exp(-($(t) - tc) / $(tauC));
+        scalar newTag = $(c) * tagDecay;
+        
+        const scalar dt = $(t) - $(sT_pre);
+        if (dt > 0) {
+            newTag += ($(aPlus) * exp(-dt / $(tauPlus)));
+        }
+        $(c) = newTag;
+        """,
+
+    is_pre_spike_time_required=True, 
+    is_post_spike_time_required=True,
+    
+    is_prev_pre_spike_time_required=True, 
+    is_prev_post_spike_time_required=True)
+\end{lstlisting}
+%
+Because $w_{ij}
+\citet{Mikaitis2018} showed how equations~\ref{eq:izhikevich_stdp_c},~\ref{eq:izhikevich_stdp_w}~and~\ref{eq:izhikevich_stdp_d} could be algebraically integrated, allowing $C_{ij}$, $w_{ij}$ and $D_j$ to be updated using the following event-based updated:
+%
+\begin{align}
+    C_{ij}(t) & = C_{ij}(t_{c}^{last}) e ^{-\frac{t - t_{c}^{last}}{\tau_c}},\label{eq:c_trace_solution} \\
+    D_{j}(t) & = D_{j}(t_{d}^{last}) e ^{-\frac{t - t_{d}^{last}}{\tau_d}},\label{equ:d_trace_solution} \\
+    \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t^{last} - t_{c}^{last}}{\tau_c}} e ^{-\frac{t^{last} - t_{d}^{last}}{\tau_d}}\right).\label{eq:general_weight_update}
+\end{align}
+%
+where $t_{c}^{last}$ and $t_{d}^{last}$ represent the last times at which $C_{ij}$ and $D_{j}$ where updated respectively.
+
+To perform the Pavlovian conditioning experiment using this model, we chose \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the two neural populations.
 Stimuli are presented to the network in a random order, separated by intervals sampled from $U(100, 300) \si{\milli\second}$.
 The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in addition to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron via $I_{\text{ext}_{i}}$ throughout the simulation.
 $S_{1}$ is arbitrarily chosen as the Conditional Stimuli~(CS) and, whenever this stimuli is presented, a reward in the form of an increase in dopamine is delivered by setting $\text{DA}(t)=0.5$ after a delay sampled from $U(0, 1000) \si{\milli\second}$.
 This delay period is large enough to allow a few irrelevant stimuli to be presented which act as distractors.
-\todo{talk more about model/learning rule/refer back to old paper}.
-
 The simplest way to implement this stimulation regime is to add a current source to the excitatory and inhibitory neuron populations which adds the uniformly-distributed input current to an externally-controllable per-neuron current.
 In PyGeNN, the following model can be defined to do just that:
 \begin{lstlisting}[language=python]
@@ -421,8 +482,8 @@ All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 T
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
 However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce GTX 1650 and Titan RTX respectively, it still performs impressively.
 
-The time taken to actually simulate the models (`Neuron simulation'/blue and `Synapse simulation'/orange) are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
-However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead'/green).
+The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
+However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead').
 Because Python is an interpreted language, such operations are inherently slower -- this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
 Unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data doesn't have to be copied between GPU and CPU memory and can instead by accessed by both.
 \todo{run xavier NX without recording and without zero copy}
