@@ -363,16 +363,16 @@ izhikevich_stdp_model = create_custom_weight_update_class(
     var_name_types=[("w", "scalar"), ("c", "scalar")],
 \end{lstlisting}
 %
-We then instruct GeNN to keep track of the times of current and previous pre and postsynaptic spikes.
+We then instruct GeNN to record the times of current and previous pre and postsynaptic spikes.
 \todo{improve sentence}
 The current spike time will equal the current time if a spike of this sort is being processed in the current timestep whereas the previous spike time only tracks spikes which have occur \emph{before} the current timestep:
 %
 \begin{lstlisting}
-    is_pre_spike_time_required=True, 
+    is_pre_spike_time_required=True,
     is_post_spike_time_required=True,
     
-    is_prev_pre_spike_time_required=True, 
-    is_prev_post_spike_time_required=True
+    is_prev_pre_spike_time_required=True,
+    is_prev_post_spike_time_required=True,
 \end{lstlisting}
 %
 Next we define the `sim code' which is called whenever presynaptic spikes arrive at the synapse.
@@ -425,21 +425,52 @@ Other than implementing the potentiation case of equation~\ref{eq:stdp_pair} and
             newTag += ($(aPlus) * exp(-dt / $(tauPlus)));
         }
         $(c) = newTag;
-        """,
-
-    )
+        """)
 \end{lstlisting}
 %
-The synaptic weight $w_{ij}$ update described by 
-In order to deliver the dopamine 
-Because $w_{ij}$
-\citet{Mikaitis2018} showed how equations~\ref{eq:izhikevich_stdp_c},~\ref{eq:izhikevich_stdp_w}~and~\ref{eq:izhikevich_stdp_d} could be algebraically integrated, allowing $C_{ij}$, $w_{ij}$ and $D_j$ to be updated using the following event-based updated:
+Adding the synaptic weight $w_{ij}$ update described by equation~\ref{eq:izhikevich_stdp_w} requires two components.
+In addition to pre and postsynaptic spikes, the weight update model needs to receive events whenever dopamine is injected via \text{DA}.
+\todo{improve sentance}
+GeNN supports such events via the `spike-like event' system which allows events to be triggered based on a condition applied to the presynaptic neuron.
+In this case, this condition is simply used to check an \lstinline{injectDopamine} flag set by the dopamine injection logic in our presynaptic neuron model:
+%
+\begin{lstlisting}
+    event_threshold_condition_code="injectDopamine",
+\end{lstlisting}
+%
+In order to extend our event-driven update of $C_{ij}$ to include these events we need to instruct GeNN to record the times at which they occur:
+%
+\begin{lstlisting}
+    is_pre_spike_event_time_required=True,
+    is_prev_pre_spike_event_time_required=True,
+\end{lstlisting}
+%
+The spike-like events can now be handled using an `event code' string:
+%
+\begin{lstlisting}
+    event_code=
+        """
+        const scalar tc = fmax($(sT_pre), fmax($(prev_sT_post), $(prev_seT_pre)));
+        const scalar tagDecay = exp(-($(t) - tc) / $(tauC));
+        $(c) *= tagDecay;
+        """,
+\end{lstlisting}
+%
+After updating the previosuly defined calculations of \lstinline{tc} in the sim code and learn post code to also include the times of spike-like events, all that remains is to update $w_{ij}$.
+\citet{Mikaitis2018} showed how equation~\ref{eq:izhikevich_stdp_w} could be integrated algebraically, allowing $w_{ij}$ to be updated in an event-driven manner with:
 %
 \begin{align}
-    \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t^{last} - t_{c}^{last}}{\tau_c}} e ^{-\frac{t^{last} - t_{d}^{last}}{\tau_d}}\right).\label{eq:general_weight_update}
+    \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t_{w}^{last} - t_{c}^{last}}{\tau_c}} e ^{-\frac{t_{w}^{last} - t_{d}^{last}}{\tau_d}}\right) \label{eq:general_weight_update}
 \end{align}
 %
-where $t_{c}^{last}$ and $t_{d}^{last}$ represent the last times at which $C_{ij}$ and $D_{j}$ where updated respectively.
+where $t_{c}^{last}$, $t_{w}^{last}$ and $t_{d}^{last}$ represent the last times at which $C_{ij}$, $W_{ij}$ and $D_{j}$ respectively were updated.
+Because we will always update $w_{ij}$ and $C_{ij}$ together when presynaptic, postsynaptic and spike-like events occur, $t_{c}^{last} = t_{w}^{last}$ and equation~\ref{eq:general_weight_update} can be simplified to:
+%
+\begin{align}
+    \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t_{c}^{last} - t_{d}^{last}}{\tau_d}}\right) \label{eq:general_weight_update}
+\end{align}
+%
+and this update can now  be added to each of our three event handling code strings to complete the implementation of the learning rule.
 
 \subsubsection{PyGeNN implementation of Pavlovian conditioning experiment}
 To perform the Pavlovian conditioning experiment using this model, we chose \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the two neural populations.
@@ -450,7 +481,7 @@ This delay period is large enough to allow a few irrelevant stimuli to be presen
 The simplest way to implement this stimulation regime is to add a current source to the excitatory and inhibitory neuron populations which adds the uniformly-distributed input current to an externally-controllable per-neuron current.
 In PyGeNN, the following model can be defined to do just that:
 \begin{lstlisting}[language=python]
-stim_noise_model = genn_model.create_custom_current_source_class(
+stim_noise_model = create_custom_current_source_class(
     "stim_noise",
     param_names=["n"],
     var_name_types=[("iExt", "scalar", VarAccess_READ_ONLY)],
@@ -479,7 +510,7 @@ curr_pop.push_var_to_device("iExt")
 The same approach can then be used to zero the current afterwards.
 However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, in order to reduce potential overheads, we can offload the stimulus delivery entirely to the GPU using the following slightly more complex model:
 \begin{lstlisting}[language=python]
-stim_noise_model = genn_model.create_custom_current_source_class(
+stim_noise_model = create_custom_current_source_class(
     "stim_noise",
     param_names=["n", "stimMagnitude"],
     var_name_types=[("startStim", "unsigned int"), 
