@@ -181,19 +181,7 @@ The ability to extend this system to Python was a key requirement of PyGeNN and,
 \begin{lstlisting}[language=C++]
 %feature("director") NeuronModels::Base; 
 \end{lstlisting}
-%
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=180mm]{figures/potjans_circuit_v2}
-    \end{center}
-    \caption{Illustration of the microcircuit model.
-    Blue triangles represent excitatory populations, red circles represent inhibitory populations and the numbers beneath each symbol shows the number of neurons in each population.
-    Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
-    All excitatory synaptic weights are normally distributed with a mean of \SI{0.0878}{\nano\ampere} (unless otherwise indicated in green) and a standard deviation of \SI{0.00878}{\nano\ampere}.
-    All inhibitory synaptic weights are normally distributed with a mean of \SI{0.3512}{\nano\ampere} and a standard deviation of \SI{0.03512}{\nano\ampere}.}
-    \label{fig:potjans_circuit}
-\end{figure}
-%
+
 \subsection{PyGeNN}
 \label{sec:methods/pygenn}
 While GeNN \emph{could} be used from Python via the wrapper generated using the techniques described in the previous section, the resultant code would be unpleasant to use directly.
@@ -235,12 +223,13 @@ Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host me
 %
 \begin{figure}
     \begin{center}
-        \includegraphics[width=85mm]{figures/circuit2}
+        \includegraphics[width=180mm]{figures/potjans_circuit_v2}
     \end{center}
-    \caption{Illustration of the balanced random network model.
-    The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
+    \caption{Illustration of the microcircuit model.
+    Blue triangles represent excitatory populations, red circles represent inhibitory populations and the numbers beneath each symbol shows the number of neurons in each population.
     Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
-    All excitatory synaptic weights are plastic and initialised to \num{1} and all inhibitory synaptic weights are initialised to \num{-1}.}
+    All excitatory synaptic weights are normally distributed with a mean of \SI{0.0878}{\nano\ampere} (unless otherwise indicated in green) and a standard deviation of \SI{0.00878}{\nano\ampere}.
+    All inhibitory synaptic weights are normally distributed with a mean of \SI{0.3512}{\nano\ampere} and a standard deviation of \SI{0.03512}{\nano\ampere}.}
     \label{fig:potjans_circuit}
 \end{figure}
 %
@@ -256,17 +245,7 @@ Spiking data over multiple timesteps is then represented by bitfields stored in 
 Using this approach, even the spiking output of relatively large models, running for many timesteps can be stored in a small amount of memory.
 For example, the spiking output of a model with \num{100E3} neurons running for \num{10E3} simulation timesteps, required less than \SI{120}{\mega\byte} -- a small fraction of the memory on a modern GPU.
 While efficiently handling spikes stored in a bitfield is a little trickier than working with a list of neuron indices, GeNN provides an efficient C++ helper function for saving the spikes stored in a bitfield to a text file and a numpy-based method for decoding them in PyGeNN. 
-%
-\begin{figure}[h!]
-    \begin{center}
-        \includegraphics{figures/microcircuit_overheads.pdf}
-    \end{center}
-    \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
-    `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
-    The dashed horizontal line indicates realtime performance}
-    \label{fig:microcircuit_overheads}
-\end{figure}
-%
+
 \subsection{Cortical microcircuit model}
 \label{sec:methods/cortical_microcircuit}
 \citet{Potjans2012} developed a cortical microcircuit model of \SI{1}{\milli\metre\cubed} of early-sensory cortex.
@@ -299,7 +278,18 @@ where $\tau_{\text{syn}}=\SI{0.5}{\milli\second}$, $\nu_{\text{ext}}$ represents
 The ordinary differential equations~\ref{eq:lif_neuron},~\ref{eq:exp_neuron_input_current}~and~\ref{eq:poisson_input_current} are solved with an exponential Euler algorithm.
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
-
+%
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=85mm]{figures/circuit2}
+    \end{center}
+    \caption{Illustration of the balanced random network model.
+    The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
+    Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
+    All excitatory synaptic weights are plastic and initialised to \num{1} and all inhibitory synaptic weights are initialised to \num{-1}.}
+    \label{fig:potjans_circuit}
+\end{figure}
+%
 \subsection{Pavlovian conditioning model}
 \label{sec:methods/izhikevich}
 The cortical microcircuit model described in the previous section is ideal for exploring the performance of short simulations of relatively large models.
@@ -433,6 +423,17 @@ stim_noise_model = genn_model.create_custom_current_source_class(
         $(injectCurrent, $(iExt) + ($(gennrand_uniform) * $(n) * 2.0) - $(n));
         """)
 \end{lstlisting}
+%
+\begin{figure}[h!]
+    \begin{center}
+        \includegraphics{figures/microcircuit_overheads.pdf}
+    \end{center}
+    \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
+    `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
+    The dashed horizontal line indicates realtime performance}
+    \label{fig:microcircuit_overheads}
+\end{figure}
+%
 where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses the `XORWOW' pseudo-random number generator provided by cuRAND~\todo{cite} to sample from $U(0,1)$. 
 Once a current source population using this model has been instantiated and a memory view to \lstinline{iExt} obtained in the manner described in section~\ref{sec:methods/pygenn}, in timesteps when stimulus injection is required, current can be injected into the list of neurons contained in \lstinline{stimuli_input_set} with:
 \begin{lstlisting}[language=python]
@@ -465,7 +466,18 @@ This array is stored in a `extra global parameter' which is a read-only memory a
 \begin{lstlisting}
 curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
 \end{lstlisting}
-
+%
+\begin{figure}[h!]
+    \begin{center}
+        \includegraphics{figures/izhikevich_spikes.pdf}
+    \end{center}
+    \caption{Results of Pavlovian conditioning experiment.
+             Raster and spike density plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
+             Downward green arrows indicate times at which CS is delivered and downward black arrows indicate times when other, un-rewarded stimuli are delivered. 
+             Vertical dashed lines indicate times at which dopamine is delivered}
+    \label{fig:izhikevich_spikes}
+\end{figure}
+%
 \section{Results}
 In the following subsections we will analyse the performance of the models introduced in sections~\ref{sec:methods/cortical_microcircuit}~and~\ref{sec:methods/izhikevich} on a representative selection of NVIDIA GPU hardware:
 %
@@ -477,7 +489,16 @@ In the following subsections we will analyse the performance of the models intro
 \end{itemize}
 %
 All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 Ti which runs Windows 10.
-
+%
+\begin{figure}[h!]
+    \begin{center}
+        \includegraphics{figures/izhikevich.pdf}
+    \end{center}
+    \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} or biological time.
+             }
+    \label{fig:izhikevich}
+\end{figure}
+%
 \subsection{Cortical microcircuit model performance}
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
 However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce GTX 1650 and Titan RTX respectively, it still performs impressively.
@@ -491,27 +512,7 @@ While, using this shared memory for recording spikes, reduces the overheads asso
 However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10.
 Intriguingly, the overhead is now identical between Python and C++.
 Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019} and significantly faster than other recently published GPU simulators~\citep{Golosio2020}.
-%
-\begin{figure}[h!]
-    \begin{center}
-        \includegraphics{figures/izhikevich_spikes.pdf}
-    \end{center}
-    \caption{Results of Pavlovian conditioning experiment.
-             Raster and spike density plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
-             Downward green arrows indicate times at which CS is delivered and downward black arrows indicate times when other, un-rewarded stimuli are delivered. 
-             Vertical dashed lines indicate times at which dopamine is delivered}
-    \label{fig:izhikevich_spikes}
-\end{figure}
-%
-\begin{figure}[h!]
-    \begin{center}
-        \includegraphics{figures/izhikevich.pdf}
-    \end{center}
-    \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} or biological time.
-             }
-    \label{fig:izhikevich}
-\end{figure}
-%
+
 \subsection{Pavlovian conditioning performance}
 Figure~\ref{fig:izhikevich_spikes} shows the results of an example simulation of the Pavlovian conditioning model.
 At the beginning of each simulation (Figure~\ref{fig:izhikevich_spikes}A), the neurons representing every stimulus respond equally.
