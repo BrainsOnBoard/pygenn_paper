@@ -221,7 +221,7 @@ While the PyGeNN API is more pythonic and, hopefully, more user-friendly than th
 Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially expensive additional copying of data is required.
 \todo{defining new neuron models, parameters and variables}
 %
-\begin{figure}
+\begin{figure}[t!]
     \begin{center}
         \includegraphics[width=180mm]{figures/potjans_circuit_v2}
     \end{center}
@@ -279,7 +279,7 @@ The ordinary differential equations~\ref{eq:lif_neuron},~\ref{eq:exp_neuron_inpu
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
 %
-\begin{figure}
+\begin{figure}[t!]
     \begin{center}
         \includegraphics[width=85mm]{figures/circuit2}
     \end{center}
@@ -490,17 +490,7 @@ stim_noise_model = create_custom_current_source_class(
         $(injectCurrent, $(iExt) + ($(gennrand_uniform) * $(n) * 2.0) - $(n));
         """)
 \end{lstlisting}
-%
-\begin{figure}[h!]
-    \begin{center}
-        \includegraphics{figures/microcircuit_overheads.pdf}
-    \end{center}
-    \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
-    `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
-    The dashed horizontal line indicates realtime performance}
-    \label{fig:microcircuit_overheads}
-\end{figure}
-%
+
 where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses the `XORWOW' pseudo-random number generator provided by cuRAND~\todo{cite} to sample from $U(0,1)$. 
 Once a current source population using this model has been instantiated and a memory view to \lstinline{iExt} obtained in the manner described in section~\ref{sec:methods/pygenn}, in timesteps when stimulus injection is required, current can be injected into the list of neurons contained in \lstinline{stimuli_input_set} with:
 \begin{lstlisting}[language=python]
@@ -509,6 +499,7 @@ curr_pop.push_var_to_device("iExt")
 \end{lstlisting}
 The same approach can then be used to zero the current afterwards.
 However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, in order to reduce potential overheads, we can offload the stimulus delivery entirely to the GPU using the following slightly more complex model:
+
 \begin{lstlisting}[language=python]
 stim_noise_model = create_custom_current_source_class(
     "stim_noise",
@@ -534,7 +525,17 @@ This array is stored in a `extra global parameter' which is a read-only memory a
 curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
 \end{lstlisting}
 %
-\begin{figure}[h!]
+\begin{figure}[t!]
+    \begin{center}
+        \includegraphics{figures/microcircuit_overheads.pdf}
+    \end{center}
+    \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
+    `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
+    The dashed horizontal line indicates realtime performance}
+    \label{fig:microcircuit_overheads}
+\end{figure}
+%
+\begin{figure}[t!]
     \begin{center}
         \includegraphics{figures/izhikevich_spikes.pdf}
     \end{center}
@@ -556,16 +557,7 @@ In the following subsections we will analyse the performance of the models intro
 \end{itemize}
 %
 All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 Ti which runs Windows 10.
-%
-\begin{figure}[h!]
-    \begin{center}
-        \includegraphics{figures/izhikevich.pdf}
-    \end{center}
-    \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} or biological time.
-             }
-    \label{fig:izhikevich}
-\end{figure}
-%
+
 \subsection{Cortical microcircuit model performance}
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
 However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce GTX 1650 and Titan RTX respectively, it still performs impressively.
@@ -574,17 +566,33 @@ The time taken to actually simulate the models (`Neuron simulation' and `Synapse
 However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead').
 Because Python is an interpreted language, such operations are inherently slower -- this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
 Unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data doesn't have to be copied between GPU and CPU memory and can instead by accessed by both.
-\todo{run xavier NX without recording and without zero copy}
 While, using this shared memory for recording spikes, reduces the overheads associated with copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
 However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10.
-Intriguingly, the overhead is now identical between Python and C++.
+%Intriguingly, the overhead is now identical between Python and C++.
 Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019} and significantly faster than other recently published GPU simulators~\citep{Golosio2020}.
-
+%
+\begin{figure}[t!]
+    \begin{center}
+        \includegraphics{figures/izhikevich.pdf}
+    \end{center}
+    \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} of biological time.
+             \todo{explanation of bars}}
+    \label{fig:izhikevich}
+\end{figure}
+%
 \subsection{Pavlovian conditioning performance}
 Figure~\ref{fig:izhikevich_spikes} shows the results of an example simulation of the Pavlovian conditioning model.
 At the beginning of each simulation (Figure~\ref{fig:izhikevich_spikes}A), the neurons representing every stimulus respond equally.
 However, after \SI{1}{\hour} of simulation, the response to the CS becomes much stronger (Figure~\ref{fig:izhikevich_spikes}B) -- showing that these neurons have been selectively associated with the stimulus even in the presence of the distractors and the delayed reward.
-
+%
+\begin{figure}[t!]
+    \begin{center}
+        \includegraphics{figures/compare_overhead.pdf}
+    \end{center}
+    \caption{Comparison of per-timestep overhead in microcircuit and Pavlovian conditioning experiments.}
+    \label{fig:compare_overhead}
+\end{figure}
+%
 Figure~\ref{fig:izhikevich} shows the runtime performance for simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
 These PyGeNN results are compared to a C++ simulation which also takes advantage of both optimizations.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
@@ -599,6 +607,10 @@ Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which han
 This is particularly beneficial for SNN simulations which involve a significant amount of integer arithmetic for indexing sparse matrix data structures etc, that is interspersed between the floating point computations needed to determine neuron and synapse states.
 Furthermore, the large performance improvement seen when offloading stimulus delivery to the GPU is likely to be due to overheads relating to the Windows Display Driver Model~(WDDM).\todo{convince NSight systems to work and get WDDM stats}.
 \todo{Why does here a difference remain between Python and C++ (presumably in the overheads?; would be nice to be able to see the neuron, synapse, overheads split here as well!)}
+
+While the difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}), the per-timestep overhead of using Python is actually approximately constant as figure~\ref{fig:compare_overhead} illustrates.
+However, depending on the size and complexity of the model as well as the hardware used, this overhead may still be significant.\todo{not really sure whether significant is what we want to say here}
+For example, when simulating the microcircuit model for \SI{1}{\second} on the Titan RTX, the overhead of using Python is less than \SI{0.2}{\percent} but, when simulating the Pavlovian conditioning model on the same device, the overhead of using Python is almost \SI{31}{\percent}.
 
 \section{Discussion}
 discuss!
