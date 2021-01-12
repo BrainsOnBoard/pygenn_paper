@@ -1,8 +1,5 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
-from matplotlib.ticker import LogFormatterExponent
 import seaborn as sns
 import plot_settings
 
