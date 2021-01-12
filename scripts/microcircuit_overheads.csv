@@ -1,13 +1,13 @@
-Device,Scale,Platform,Simulation time [ms],Init time [ms],Sparse init [ms],Neuron simulation [ms],Presynaptic update [ms],Overhead [ms],
-Geforce 1650 GTX,1,Python,4766,225,81,1104,1685,1977,
-Geforce 1650 GTX,1,C++,3900,226,61,1102,1672,1126,
-Geforce 1650 GTX,1,Python recording,2974,225,72,1138,1682,154,
-Geforce 1650 GTX,1,C++ recording,3000,226,65,1136,1697,167,
-Jetson Xavier NX,1,Python,11215,462,274,3217,3258,4740,Zero Copy
-Jetson Xavier NX,1,C++,7700,456,170,3229,3361,1110,Zero Copy
-Jetson Xavier NX,1,Python recording,6112,554,272,2551,3240,321,
-Jetson Xavier NX,1,C++ recording,6002,465,173,2549,3223,230,
-Titan RTX,1,Python,1829,39,39,238,349,1242,
-Titan RTX,1,C++,1368,33,34,239,349,780,
-Titan RTX,1,Python recording,710,39,42,237,357,116,
-Titan RTX,1,C++ recording,663,33,33,234,326,103,
+Device,Scale,Platform,Simulation time [ms],Init time [ms],Sparse init [ms],Neuron simulation [ms],Presynaptic update [ms],Overhead [ms]
+Geforce 1650 GTX,1,Python,4766,225,81,1104,1685,1977
+Geforce 1650 GTX,1,C++,3900,226,61,1102,1672,1126
+Geforce 1650 GTX,1,Python recording,2924,274,72,1061,1717,146
+Geforce 1650 GTX,1,C++ recording,2895,288,49,1056,1708,131
+Jetson Xavier NX,1,Python,11215,462,274,3217,3258,4740
+Jetson Xavier NX,1,C++,7700,456,170,3229,3361,1110
+Jetson Xavier NX,1,Python recording,6112,554,272,2551,3240,321
+Jetson Xavier NX,1,C++ recording,6002,465,173,2549,3223,230
+Titan RTX,1,Python,1829,39,39,238,349,1242
+Titan RTX,1,C++,1368,33,34,239,349,780
+Titan RTX,1,Python recording,710,39,42,237,357,116
+Titan RTX,1,C++ recording,663,33,33,234,326,103
