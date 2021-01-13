@@ -613,8 +613,28 @@ However, depending on the size and complexity of the model as well as the hardwa
 For example, when simulating the microcircuit model for \SI{1}{\second} on the Titan RTX, the overhead of using Python is less than \SI{0.2}{\percent} but, when simulating the Pavlovian conditioning model on the same device, the overhead of using Python is almost \SI{31}{\percent}.
 
 \section{Discussion}
-discuss!
+In this paper we have introduced the PyGeNN interface, a Python wrapper around the C++ based GeNN software for GPU accelerated spiking neural network simulations.
+
+Uniquely, the new interface allows using all features of GeNN without leaving the comparative simplicity of Python and with, as we have shown, typically negligible overheads from the Python bindings.
+This includes the definition of bespoke neuron and synapse models which makes PyGeNN much more flexible and more broadly applicable than for instance the popular PyNN model language.
+
+In many ways, the new interface resembles elements of the Python based Brian 2 simulator (and brian2GeNN backend) with two key differences.
+Unlike in Brian 2, bespoke models are in PyGeNN defined with ``C++ like'' code snippets, which has the advantage of unparalleled flexibility for the expert user but at the cost of more complexity as a full and functional code for a timestep update needs to be provided, not just differential equations.
+The second difference lies in how data structures are handled. Whereas using the C++ or brian2genn backends in Brian 2 involves data transfers to and from disk, the data structures in PyGeNN are fully shared from Python to C++ codes and no disk access is involved.
+
+As we have demonstrated, the PyGeNN wrapper, exactly like native GeNN, can be used on a variety of hardware from data centre scale down to mobile devices such as the NVIDIA Jetson controllers.
+This allows for using the same codes in large scale brain simulations and embedded and embodied spiking neural network research.
+Supporting the popular Python language in this interface makes this ecosystem available to a wider audience of researchers in both Computational Neuroscience and bio-mimetic machine learning and autonomous robotics.
+
+The new interface also opens up opportunities to support researchers that work with other Python based systems.
+In the Computational Neuroscience and Neuromorphic computing community, we can now build support for PyNN based on PyGeNN and a prototype PyNN interface for GeNN is in development.
+For the machine learning community, we can leverage PyGeNN to be the middleware for a deep learning framework akin to Keras/tensorflow or pyTorch.
+A prototype interface called mlGeNN is in development and close to release.
+
+Finally, we have in this work introduced a new spike recording system, both for GeNN and pyGeNN, and have shown that with this improvement, we can now simulate the Potjans microcircuit model in faster than realtime, which thus far was only possible on the large SpiNNaker neuromorphic supercomputer.
+
 \begin{itemize}
+  \item do we need to discuss the wide variety of uses, i.e. MC versus Pavlovian demonstrated in this paper?
     \item Turing architecture is great for GeNN! Presented results improve on state-of-the-art.
     \item PyGeNN as an intermediate layer - PyNN, ML
     \item Cost of C++ - Python calls in models
