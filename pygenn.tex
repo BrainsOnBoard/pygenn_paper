@@ -561,8 +561,10 @@ All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 T
 \subsection{Cortical microcircuit model performance}
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the three desktop GPUs.
 However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce cards and Titan RTX respectively, it still performs impressively.
-
 The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
+Interestingly, when simulating \emph{this} model, the larger L1 cache and architectural improvements present in the Turing-based GTX 1650 do not result in significantly improved performance over the Pascal-based GTX 1050Ti.
+Instead, the slightly improved performance of the GTX 1650 can probably be explained by its additional \num{128} CUDA cores.
+
 Without the recording system described in section~\ref{sec:methods/spike_recording}, the CPU and GPU need to to synchronised after every timestep to allow spike data to be copied off the GPU and stored in a suitable data structure.
 The `overheads' shown in figure~\ref{fig:microcircuit_overheads} indicate the time taken by these processes as well as the unavoidable overheads of launching CUDA kernels etc.
 Because Python is an interpreted language, updating the spike data structures is somewhat slower and this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
@@ -597,19 +599,19 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
     \caption{Comparison of per-timestep overhead in microcircuit and Pavlovian conditioning experiments.}
     \label{fig:compare_overhead}
 \end{figure}
-%
-Figure~\ref{fig:izhikevich} shows the runtime performance for simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
-These PyGeNN results are compared to a C++ simulation which also takes advantage of both optimizations.
+
+In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
+These PyGeNN results are compared to a C++ simulation using both optimizations.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
 This is because, as discussed previously, this model is simply not large enough to fill the \num{4608} CUDA cores present on the Titan RTX.
 Therefore, as the two GPUs share the same Turing architecture and have very similar clock speeds (\SIrange{1350}{1770}{\mega\hertz} for the Titan RTX and \SIrange{1485}{1665}{\mega\hertz} for the GTX 1650), the two GPUs perform very similarly.
 Furthermore, on these two systems, while using the recording system significantly improves performance, the impact of delivering stimuli on the GPU is minimal.
-However, the GTX 1050 Ti performs rather differently. 
+However, unlike in the simulations of the microcircuit model, here the GTX 1050 Ti performs rather differently. 
 Although the clock speed of this device is approximately the same as the other GPUs (\SIrange{1290}{1392}{\mega\hertz}) and it has a similar number of CUDA cores to the GTX 1650, its performance is significantly worse.
-Furthermore, unlike on the other devices, offloading stimuli delivery to the GPU improves the performance significantly.
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
-Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs.
-This is particularly beneficial for SNN simulations which involve a significant amount of integer arithmetic for indexing sparse matrix data structures etc, that is interspersed between the floating point computations needed to determine neuron and synapse states.
+Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs as well as significantly larger L1 caches.
+As discussed in our previous work~\citep{Knight2018}, these architectural features are particularly beneficial for SNN simulations with STDP where a large amount of floating point computation is required to update the synaptic state \emph{and} additional integer arithmetic is required to calculate the indices into the sparse matrix data structures.
+Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimuli delivery to the GPU improves the performance significantly on the Windows machine.
 
 While the difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}), the per-timestep overhead of using Python is actually approximately constant as figure~\ref{fig:compare_overhead} illustrates.
 However, depending on the size and complexity of the model as well as the hardware used, this overhead may still be significant.\todo{not really sure whether significant is what we want to say here}
@@ -636,7 +638,7 @@ In the Computational Neuroscience and Neuromorphic computing communities, we can
 Furthermore, for the burgeoning spike-based machine learning community, we can use PyGeNN as the basis for a spike-based machine learning framework akin to TensorFlow or PyTorch for rate-based models.
 A prototype interface of this sort called mlGeNN is in development and close to release.
 
-Finally, in this work we have introduced a new spike recording system for GeNN and have shown that, using this system, we can now simulate the Potjans microcircuit~\citep{Potjans2012} model faster than realtime, which thus far was only possible on the large SpiNNaker neuromorphic supercomputer~\citep{Rhodes2019}.
+Finally, in this work we have introduced a new spike recording system for GeNN and have shown that, using this system, we can now simulate the Potjans microcircuit~\citep{Potjans2012} model faster than real-time, which thus far was only possible on the large SpiNNaker neuromorphic supercomputer~\citep{Rhodes2019}.
 
 \begin{itemize}
   \item do we need to discuss the wide variety of uses, i.e. MC versus Pavlovian demonstrated in this paper?
