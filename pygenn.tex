@@ -559,17 +559,22 @@ In the following subsections we will analyse the performance of the models intro
 All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 Ti which runs Windows 10.
 
 \subsection{Cortical microcircuit model performance}
-Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the two desktop GPUs.
-However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce GTX 1650 and Titan RTX respectively, it still performs impressively.
+Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the three desktop GPUs.
+However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce cards and Titan RTX respectively, it still performs impressively.
 
 The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
-However, both the PyGeNN and C++ simulations spend a significant amount of every simulation step copying spike data off the device and storing it in a suitable data structure (`Overhead').
-Because Python is an interpreted language, such operations are inherently slower -- this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
-Unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data doesn't have to be copied between GPU and CPU memory and can instead by accessed by both.
-While, using this shared memory for recording spikes, reduces the overheads associated with copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
-However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and this overhead is reduced by around a factor of 10.
+Without the recording system described in section~\ref{sec:methods/spike_recording}, the CPU and GPU need to to synchronised after every timestep to allow spike data to be copied off the GPU and stored in a suitable data structure.
+The `overheads' shown in figure~\ref{fig:microcircuit_overheads} indicate the time taken by these processes as well as the unavoidable overheads of launching CUDA kernels etc.
+Because Python is an interpreted language, updating the spike data structures is somewhat slower and this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
+However, unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data doesn't have to be copied between their memories and can instead by accessed by both.
+While, using this shared memory for recording spikes reduces the overhead of copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
+Although the Windows machine has a relatively powerful CPU, the overheads measured in both the Python and C++ simulations run on this system are extremely large due to additional queuing between the application and the GPU driver  caused by the Windows Display Driver Model~(WDDM).
+When small -- in this case \SI{0.1}{\milli\second} -- simulation timesteps are used, this makes per-timestep synchronisation disproportionately expensive.
+
+However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and overheads are reduced by up to 10$\times$.
+Because synchronisation with the CPU is no longer required every timestep, simulations run approximately twice as fast on the Windows machine.
 %Intriguingly, the overhead is now identical between Python and C++.
-Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- previously only achievable using a specialised neuromorphic system~\citep{Rhodes2019} and significantly faster than other recently published GPU simulators~\citep{Golosio2020}.
+Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- significantly faster than other recently published GPU simulators~\citep{Golosio2020} and even specialised neuromorphic systems~\citep{Rhodes2019}.
 %
 \begin{figure}[t!]
     \begin{center}
@@ -605,8 +610,6 @@ Furthermore, unlike on the other devices, offloading stimuli delivery to the GPU
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
 Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs.
 This is particularly beneficial for SNN simulations which involve a significant amount of integer arithmetic for indexing sparse matrix data structures etc, that is interspersed between the floating point computations needed to determine neuron and synapse states.
-Furthermore, the large performance improvement seen when offloading stimulus delivery to the GPU is likely to be due to overheads relating to the Windows Display Driver Model~(WDDM).\todo{convince NSight systems to work and get WDDM stats}.
-\todo{Why does here a difference remain between Python and C++ (presumably in the overheads?; would be nice to be able to see the neuron, synapse, overheads split here as well!)}
 
 While the difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}), the per-timestep overhead of using Python is actually approximately constant as figure~\ref{fig:compare_overhead} illustrates.
 However, depending on the size and complexity of the model as well as the hardware used, this overhead may still be significant.\todo{not really sure whether significant is what we want to say here}
