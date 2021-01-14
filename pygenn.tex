@@ -219,7 +219,39 @@ while model.t < 200.0:
 Initialisation of variables with homogeneous values -- such as the neurons' membrane potential -- is performed by GeNN and those with heterogeneous values -- such as the \lstinline{a}, \lstinline{b} and \lstinline{c} parameters -- are initialised by PyGeNN when the model is loaded.
 While the PyGeNN API is more pythonic and, hopefully, more user-friendly than the C++ interface, it still provides users with the same low-level control over the simulation.
 Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially expensive additional copying of data is required.
-\todo{defining new neuron models, parameters and variables}
+
+As illustrated in the previously-defined model, for convenience, PyGeNN allows users to access GeNN's built-in models.
+However, one of PyGeNN's most powerful features is that it enables users to easily define their own neuron and synapse models from within Python.
+For example, an Izhikevich neuron model~\citep{Izhikevich2003a} can be defined using the \lstinline{create_custom_neuron_class} helper function which provides some syntactic sugar over the model class inheritance described in the previous section:
+%
+\begin{lstlisting}[language=Python]
+izk_model = genn_model.create_custom_neuron_class(
+    "izk",
+
+    param_names=["a", "b", "c", "d"],
+    var_name_types=[("V", "scalar"), ("U", "scalar")],
+
+    sim_code=
+        """
+        $(V)+=0.5*(0.04*$(V)*$(V)+5.0*$(V)+140.0-$(U)+$(Isyn))*DT;
+        $(V)+=0.5*(0.04*$(V)*$(V)+5.0*$(V)+140.0-$(U)+$(Isyn))*DT;
+        $(U)+=$(a)*($(b)*$(V)-$(U))*DT;
+        """,
+    threshold_condition_code="$(V) >= 30.0",
+    reset_code=
+        """
+        $(V)=$(c);
+        $(U)+=$(d);
+        """)
+\end{lstlisting}
+%
+The \lstinline{param_names} list defines the real-valued parameters that are constant across the whole population of neurons and the \lstinline{var_name_types} list defines the model state variables and their type (the \lstinline{scalar} type is an alias for single or double-precision floating point, depending on the precision passed to the \lstinline{GeNNModel} constructor).
+The behaviour of the model can then be defined using a number of code strings.
+Unlike in tools like Brian 2~\citep{Stimberg2019}, these code strings are specified in a C-like language rather than in terms of differential equations.
+This allows expert users to choose their own solver for models described in terms of differential equations and to programatically define models such as spike sources.
+For example, in our example model, we chose to implement this neuron using the idiomatic forward Euler integration scheme employed by \citet{Izhikevich2003a}.
+Finally, the \lstinline{threshold_condition_code} expression defines \emph{when} the neuron will spike whereas the \lstinline{reset_code} code string defines how the state variables should be reset after a spike.
+
 %
 \begin{figure}[t!]
     \begin{center}
@@ -456,7 +488,7 @@ The spike-like events can now be handled using an `event code' string:
         """,
 \end{lstlisting}
 %
-After updating the previosuly defined calculations of \lstinline{tc} in the sim code and learn post code to also include the times of spike-like events, all that remains is to update $w_{ij}$.
+After updating the previously defined calculations of \lstinline{tc} in the sim code and learn post code to also include the times of spike-like events, all that remains is to update $w_{ij}$.
 \citet{Mikaitis2018} showed how equation~\ref{eq:izhikevich_stdp_w} could be integrated algebraically, allowing $w_{ij}$ to be updated in an event-driven manner with:
 %
 \begin{align}
