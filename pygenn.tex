@@ -227,10 +227,8 @@ For example, an Izhikevich neuron model~\citep{Izhikevich2003a} can be defined u
 \begin{lstlisting}[language=Python]
 izk_model = genn_model.create_custom_neuron_class(
     "izk",
-
     param_names=["a", "b", "c", "d"],
     var_name_types=[("V", "scalar"), ("U", "scalar")],
-
     sim_code=
         """
         $(V)+=0.5*(0.04*$(V)*$(V)+5.0*$(V)+140.0-$(U)+$(Isyn))*DT;
