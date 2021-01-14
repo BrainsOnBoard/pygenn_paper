@@ -6,7 +6,7 @@ import seaborn as sns
 import plot_settings
 
 # Names and algorithms - could extract them from CSV but it's a ball-ache
-uc_devices = ["GeForce\nGTX 1650\nLinux", "Jetson\nXavier NX\nLinux", "Titan\nRTX\nLinux"]
+uc_devices = ["GeForce\nGTX 1650\nLinux", "Jetson\nXavier NX\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
 uc_algorithms = ["Python", "C++", "Python recording", "C++ recording"]
 
 # Import data
