@@ -60,14 +60,14 @@ $^{2}$\todo{Anton's affiliatino}}
 
 %%% Leave the Abstract empty if your article does not require one, please see the Summary Table for full details.
 \section{}
-GPU accelerators are now used in 60\% of the Top 10 super computing sites worldwide and are becoming increasingly ubiquitous in workstations and edge computing devices.
-GeNN is a library written in C++ which generates efficient spiking neural network simulation code to run on GPU devices.
-However, until now, the full flexibility of GeNN could only be harnessed by writing model descriptions and simulation code in C++.
-In this paper we present PyGeNN, a Python package which exposes all of GeNN's functionality to Python with minimal overhead.
-This provides a more user-friendly way of using GeNN and allows modellers to take advantage of the growing Python-based machine learning and computational neuroscience ecosystems.
-We demonstrate that, in both Python and C++ GeNN simulations, the overheads of recording spiking data can come to dominate simulation times and show how a new spike recording system can reduce these overheads by up to a factor of 10.
-Using the new recording system, we demonstrate that on a modern GPU, we can use PyGeNN to simulate a full-scale model of a cortical column faster even than real-time neuromorphic systems can achieve.
-Furthermore, we show that long simulations of a smaller model with complex stimuli and a custom three-factor learning rule defined in PyGeNN can be simulated up to $72\times$ faster than real-time.
+More than half of the Top 10 supercomputing sites worldwide use GPU accelerators and they are ubiquitous in workstations and edge computing devices.
+GeNN is a C++ library for generating efficient spiking neural network simulation code for GPUs.
+Until now, GeNN could only be used to its full extent by writing model descriptions and simulation code in C++.
+Here we present PyGeNN, a Python package which exposes all of GeNN's functionality to Python with minimal overhead.
+This provides an alternative, arguably more user-friendly, way of using GeNN and allows modellers to take advantage of GeNN within the growing Python-based machine learning and computational neuroscience ecosystems.
+In addition, we demonstrate that, in both Python and C++ GeNN simulations, the overheads of recording spiking data can strongly affect runtimes and show how a new spike recording system can reduce these overheads by up to a factor of 10.
+Using the new recording system, we can simulate a full-scale model of a cortical column faster with PyGeNN on a modern GPU than real-time neuromorphic systems can.
+Long simulations of a smaller model with complex stimuli and a custom three-factor learning rule defined in PyGeNN can be simulated up to $72\times$ faster than real-time.
 
 \tiny
  \keyFont{ \section{Keywords:} GPU, high-performance computing,
