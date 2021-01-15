@@ -25,8 +25,8 @@
 \newcommand{\todo}[1]{\textbf{\textsc{\textcolor{red}{(TODO: #1)}}}}
 
 % Configure code listings
-\lstset{language=C++,showstringspaces=false,basicstyle=\tiny,upquote=true,identifierstyle=\ttfamily\color{black}}
-\lstset{language=Python,showstringspaces=false,basicstyle=\tiny,upquote=true,identifierstyle=\ttfamily\color{black}}
+\lstset{language=C++,showstringspaces=false,basicstyle=\tiny\ttfamily\bfseries,upquote=true,keywordstyle=\color{Mulberry}\bfseries,identifierstyle=\color{NavyBlue}\bfseries,stringstyle=\ttfamily\color{OliveGreen}\bfseries,commentstyle=\ttfamily\color{Maroon}\bfseries}
+\lstset{language=Python,showstringspaces=false,basicstyle=\tiny\ttfamily\bfseries,upquote=true,keywordstyle=\color{Mulberry}\bfseries,identifierstyle=\color{NavyBlue}\bfseries,stringstyle=\ttfamily\color{OliveGreen}\bfseries,commentstyle=\ttfamily\color{Maroon}\bfseries}
 
 \linenumbers
 
@@ -204,10 +204,10 @@ model.dT = 0.1
 
 izk_init = {"V": -65.0,
             "U": -20.0,
-            "a": [0.02, 0.1, 0.02, 0.02],
-            "b": [0.2, 0.2, 0.2, 0.2],
+            "a": [  0.02,  0.1,   0.02,  0.02],
+            "b": [  0.2,   0.2,   0.2,   0.2],
             "c": [-65.0, -65.0, -50.0, -55.0],
-            "d": [8.0, 2.0, 2.0, 4.0]}
+            "d": [  8.0,   2.0,   2.0,   4.0]}
 
 pop = model.add_neuron_population("Pop", 4, "IzhikevichVariable", 
                                   {}, izk_init)
@@ -256,7 +256,7 @@ The \lstinline{param_names} list defines the real-valued parameters that are con
 The behaviour of the model is then defined using a number of code strings.
 Unlike in tools like Brian 2~\citep{Stimberg2019}, these code strings are specified in a C-like language rather than using differential equations.
 This allows expert users to choose their own solver for models described in terms of differential equations and to programatically define models such as spike sources.
-For example, in the model presented above, we chose to implement the neuron using the idiomatic forward Euler integration scheme employed by \citet{Izhikevich2003a}.
+For example, in the model presented above, we chose to implement the neuron using the idiosyncratic forward Euler integration scheme employed by \citet{Izhikevich2003a}.
 Finally, the \lstinline{threshold_condition_code} expression defines \emph{when} the neuron will spike whereas the \lstinline{reset_code} code string defines how the state variables should be reset after a spike.
 %
 \begin{figure}[t!]
@@ -264,7 +264,7 @@ Finally, the \lstinline{threshold_condition_code} expression defines \emph{when}
         \includegraphics[width=180mm]{figures/potjans_circuit_v2}
     \end{center}
     \caption{Illustration of the microcircuit model.
-    Blue triangles represent excitatory populations, red circles represent inhibitory populations and the numbers beneath each symbol shows the number of neurons in each population.
+    Blue triangles represent excitatory populations, red circles represent inhibitory populations and the number beneath each symbol shows the number of neurons in each population.
     Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
     All excitatory synaptic weights are normally distributed with a mean of \SI{0.0878}{\nano\ampere} (unless otherwise indicated in green) and a standard deviation of \SI{0.00878}{\nano\ampere}.
     All inhibitory synaptic weights are normally distributed with a mean of \SI{0.3512}{\nano\ampere} and a standard deviation of \SI{0.03512}{\nano\ampere}.}
@@ -273,7 +273,7 @@ Finally, the \lstinline{threshold_condition_code} expression defines \emph{when}
 %
 \subsection{Spike recording system}
 \label{sec:methods/spike_recording}
-Internally, GeNN stores the spikes emitted by a neuron population during one simulation timestep in an array containing the indices of the neurons that spiked alongside a counter of how many spikes have been emitted.
+Internally, GeNN stores the spikes emitted by a neuron population during one simulation timestep in an array containing the indices of the neurons that spiked alongside a counter of how many spikes have been emitted overall.
 Previously, recording spikes in GeNN was very similar to the recording of voltages shown in the previous example code -- the array of neuron indices was simply copied from the GPU to the CPU every timestep.
 However, especially when simulating models with a small simulation timestep, such frequent synchronization between the CPU and GPU is costly -- especially if a slower, interpreted language such as Python is involved.
 Furthermore, biological neurons typically spike at a low rate (in the cortex, the average firing rate is only around \SI{3}{\hertz}~\citep{Buzsaki2014}) meaning that the amount of spike data transferred every timestep is typically very small.
@@ -313,7 +313,7 @@ The Poisson input is delivered to each neuron via $I_{\text{ext}_{i}}$ with
 \end{align}
 %
 where $\nu_{\text{ext}}$ represents the mean input rate and $w_{\text{ext}}$ represents the weight.
-The ordinary differential equations~\ref{eq:lif_neuron},~\ref{eq:exp_neuron_input_current}~and~\ref{eq:poisson_input_current} are solved with an exponential Euler algorithm.
+The ordinary differential Eq.~\ref{eq:lif_neuron},~(\ref{eq:exp_neuron_input_current})~and~(\ref{eq:poisson_input_current}) are solved with an exponential Euler algorithm.
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
 %
@@ -348,8 +348,8 @@ The model illustrated in figure~\ref{fig:pavlovian_circuit} consists of an \num{
 When the membrane voltage rises above 30, a spike is emitted and $V_i$ is reset to $c$ and $d$ is added to $U_i$.
 Excitatory neurons use the regular-spiking parameters~\citep{Izhikevich2003a} where $a = 0.02$, $b = 0.2$, $c = -65.0$, $d = 8.0$ and inhibitory neurons use the fast-spiking parameters~\citep{Izhikevich2003a} where $a = 0.1$, $b = 0.2$, $c = -65.0$, $d = 2.0$.
 Again, $I_{\text{syn}_{i}}$ represents the synaptic input current and $I_{\text{ext}_i}$ represents an external input current.
-While there are numerous ways to solve equations~\ref{eq:izhikevich_v}~and~\ref{eq:izhikevich_u}~\citep{Humphries2007,Hopkins2015,Pauli2018}, we chose to use the idiomatic forward Euler integration scheme employed by \citet{Izhikevich2003a} in the original work~\citep{Izhikevich2007}.
-Under this scheme, equation~\ref{eq:izhikevich_v} is first integrated for two \SI{0.5}{\milli\second} timesteps and then, based on the updated value of $V_i$, equation~\ref{eq:izhikevich_u} is integrated for a single \SI{1}{\milli\second} timestep.
+While there are numerous ways to solve Eq.~\ref{eq:izhikevich_v}~and~\ref{eq:izhikevich_u}~\citep{Humphries2007,Hopkins2015,Pauli2018}, we chose to use the idiosyncratic forward Euler integration scheme employed by \citet{Izhikevich2003a} in the original work~\citep{Izhikevich2007}.
+Under this scheme, Eq.~\ref{eq:izhikevich_v} is first integrated for two \SI{0.5}{\milli\second} timesteps and then, based on the updated value of $V_i$, Eq.~\ref{eq:izhikevich_u} is integrated for a single \SI{1}{\milli\second} timestep.
 
 \subsubsection{Synapse models}
 The excitatory and inhibitory neural populations are connected recurrently, as shown in figure~\ref{fig:potjans_circuit}, with instantaneous current-based synapses:
@@ -404,9 +404,9 @@ izhikevich_stdp_model = create_custom_weight_update_class(
 %
 We then instruct GeNN to record the times of current and previous pre and postsynaptic spikes.
 \todo{improve sentence}
-The current spike time will equal the current time if a spike of this sort is being processed in the current timestep whereas the previous spike time only tracks spikes which have occur \emph{before} the current timestep:
+The current spike time will equal the current time if a spike of this sort is being processed in the current timestep whereas the previous spike time only tracks spikes which have occurred \emph{before} the current timestep:
 %
-\begin{lstlisting}
+\begin{lstlisting}[morekeywords={True}]
     is_pre_spike_time_required=True,
     is_post_spike_time_required=True,
     
@@ -415,7 +415,7 @@ The current spike time will equal the current time if a spike of this sort is be
 \end{lstlisting}
 %
 Next we define the `sim code' which is called whenever presynaptic spikes arrive at the synapse.
-This code first implements equation~\ref{eq:delta_synapse} -- adding the synaptic weight~($w_{ij}$) to the postsynaptic neuron's input~($I_{\text{syn}_{i}}$) using the \lstinline{$(addToInSyn,x)} function.
+This code first implements Eq.~\ref{eq:delta_synapse} -- adding the synaptic weight~($w_{ij}$) to the postsynaptic neuron's input~($I_{\text{syn}_{i}}$) using the \lstinline{$(addToInSyn,x)} function.
 %
 \begin{lstlisting}[language=python]
     sim_code=
@@ -426,20 +426,20 @@ This code first implements equation~\ref{eq:delta_synapse} -- adding the synapti
 Within the sim code we also need to calculate the time that has elapsed since the last update of $C_{ij}$ using the spike times we previously requested that GeNN record.
 Within a timestep, GeNN processes presynaptic spikes before postsynaptic spikes so the time of the last update to $C_{ij}$ will be the latest time either type of spike was processed in previous timesteps:
 %
-\begin{lstlisting}
+\begin{lstlisting}[identifierstyle=\color{Maroon}]
         const scalar tc = fmax($(prev_sT_pre), 
                                $(prev_sT_post));
 \end{lstlisting}
 %
-Using this time, we can now calculate how much to decay $C_{ij}$ using the closed-form solution to equation~\ref{eq:izhikevich_stdp_c}:
+Using this time, we can now calculate how much to decay $C_{ij}$ using the closed-form solution to Eq.~\ref{eq:izhikevich_stdp_c}:
 %
-\begin{lstlisting}       
+\begin{lstlisting}[identifierstyle=\color{Maroon}]      
         const scalar tagDecay = exp(-($(t) - tc) / $(tauC));
         scalar newTag = $(c) * tagDecay;
 \end{lstlisting}
 %
-To complete the sim code we calculate the depression case of equation~\ref{eq:stdp_pair} (here we use the \emph{current} postsynaptic spike time as, if a postsynaptic and presynaptic spike occur in the same timestep, there should be no update).
-\begin{lstlisting}
+To complete the sim code we calculate the depression case of Eq.~\ref{eq:stdp_pair} (here we use the \emph{current} postsynaptic spike time as, if a postsynaptic and presynaptic spike occur in the same timestep, there should be no update).
+\begin{lstlisting}[identifierstyle=\color{Maroon},keywordstyle=\color{Maroon}]
         const scalar dt = $(t) - $(sT_post);
         if (dt > 0) {
             newTag -= ($(aMinus) * exp(-dt / $(tauMinus)));
@@ -449,7 +449,7 @@ To complete the sim code we calculate the depression case of equation~\ref{eq:st
 \end{lstlisting}
 %
 Finally we define the `learn post code' which is called whenever a postsynaptic spike arrives at the synapse.
-Other than implementing the potentiation case of equation~\ref{eq:stdp_pair} and using the \emph{current} presynaptic spike time when calculating the time since the last update of $C_{ij}$ -- in order to correctly handle presynaptic updates made in the same timestep -- this code is very similar to the sim code:
+Other than implementing the potentiation case of Eq.~\ref{eq:stdp_pair} and using the \emph{current} presynaptic spike time when calculating the time since the last update of $C_{ij}$ -- in order to correctly handle presynaptic updates made in the same timestep -- this code is very similar to the sim code:
 \begin{lstlisting}
     learn_post_code=
         """
@@ -467,7 +467,7 @@ Other than implementing the potentiation case of equation~\ref{eq:stdp_pair} and
         """)
 \end{lstlisting}
 %
-Adding the synaptic weight $w_{ij}$ update described by equation~\ref{eq:izhikevich_stdp_w} requires two further additions to the model.
+Adding the synaptic weight $w_{ij}$ update described by Eq.~\ref{eq:izhikevich_stdp_w} requires two further additions to the model.
 As well as the pre and postsynaptic spikes, the weight update model needs to receive events whenever dopamine is injected via \text{DA}.
 GeNN supports such events via the `spike-like event' system which allows events to be triggered based on an expression evaluated on the presynaptic neuron.
 In this case, this expression simply tests an \lstinline{injectDopamine} flag which gets set by the dopamine injection logic in our presynaptic neuron model:
@@ -478,7 +478,7 @@ In this case, this expression simply tests an \lstinline{injectDopamine} flag wh
 %
 In order to extend our event-driven update of $C_{ij}$ to include spike-like events we need to instruct GeNN to record the times at which they occur:
 %
-\begin{lstlisting}
+\begin{lstlisting}[morekeywords={True}]
     is_pre_spike_event_time_required=True,
     is_prev_pre_spike_event_time_required=True,
 \end{lstlisting}
@@ -495,17 +495,17 @@ The spike-like events can now be handled using a final `event code' string:
 \end{lstlisting}
 %
 After updating the previously defined calculations of \lstinline{tc} in the sim code and learn post code in the same way to also include the times of spike-like events, all that remains is to update $w_{ij}$.
-\citet{Mikaitis2018} showed how equation~\ref{eq:izhikevich_stdp_w} could be solved algebraically, allowing $w_{ij}$ to be updated in an event-driven manner with:
+\citet{Mikaitis2018} showed how Eq.~\ref{eq:izhikevich_stdp_w} could be solved algebraically, allowing $w_{ij}$ to be updated in an event-driven manner with:
 %
 \begin{align}
     \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t_{w}^{last} - t_{c}^{last}}{\tau_c}} e ^{-\frac{t_{w}^{last} - t_{d}^{last}}{\tau_d}}\right) \label{eq:general_weight_update}
 \end{align}
 %
 where $t_{c}^{last}$, $t_{w}^{last}$ and $t_{d}^{last}$ represent the last times at which $C_{ij}$, $W_{ij}$ and $D_{j}$ respectively were updated.
-Because we will always update $w_{ij}$ and $C_{ij}$ together when presynaptic, postsynaptic and spike-like events occur, $t_{c}^{last} = t_{w}^{last}$ and equation~\ref{eq:general_weight_update} can be simplified to:
+Because we will always update $w_{ij}$ and $C_{ij}$ together when presynaptic, postsynaptic and spike-like events occur, $t_{c}^{last} = t_{w}^{last}$ and Eq.~\ref{eq:general_weight_update} can be simplified to:
 %
 \begin{align}
-    \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t_{c}^{last} - t_{d}^{last}}{\tau_d}}\right) \label{eq:general_weight_update}
+    \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t_{c}^{last} - t_{d}^{last}}{\tau_d}}\right) \label{eq:general_weight_update2}
 \end{align}
 %
 and this update can now  be added to each of our three event handling code strings to complete the implementation of the learning rule.
@@ -579,10 +579,10 @@ Once the simulation time~(\lstinline{$(t)}) passes the time at \lstinline{stimTi
         \includegraphics{figures/izhikevich_spikes.pdf}
     \end{center}
     \caption{Results of Pavlovian conditioning experiment.
-             Raster and spike density plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
+             Raster plot and spike density function (SDF)~\citep{Szucs1998a} showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
              Downward green arrows indicate times at which CS is delivered and downward black arrows indicate times when other, un-rewarded stimuli are delivered. 
              Vertical dashed lines indicate times at which dopamine is delivered.
-             Mean rates are calculated by convolving the spike train with a spike density function with $\sigma=\SI{10}{\milli\second}$.\todo{thomas:is there a standard citation for this technique/is this a reasonable description?}}
+             The population SDF was calculated by convolving the spikes with a Gaussian kernel of $\sigma=\SI{10}{\milli\second}$ width.}
     \label{fig:izhikevich_spikes}
 \end{figure}
 %
@@ -606,10 +606,10 @@ The time taken to actually simulate the models (`Neuron simulation' and `Synapse
 Interestingly, when simulating \emph{this} model, the larger L1 cache and architectural improvements present in the Turing-based GTX 1650 do not result in significantly improved performance over the Pascal-based GTX 1050Ti.
 Instead, the slightly improved performance of the GTX 1650 can probably be explained by its additional \num{128} CUDA cores.
 
-Without the recording system described in section~\ref{sec:methods/spike_recording}, the CPU and GPU need to to synchronised after every timestep to allow spike data to be copied off the GPU and stored in a suitable data structure.
+Without the recording system described in section~\ref{sec:methods/spike_recording}, the CPU and GPU need to be synchronised after every timestep to allow spike data to be copied off the GPU and stored in a suitable data structure.
 The `overheads' shown in figure~\ref{fig:microcircuit_overheads} indicate the time taken by these processes as well as the unavoidable overheads of launching CUDA kernels etc.
 Because Python is an interpreted language, updating the spike data structures is somewhat slower and this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
-However, unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data doesn't have to be copied between their memories and can instead by accessed by both.
+However, unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data does not need to be copied between their memories and can instead by accessed by both.
 While, using this shared memory for recording spikes reduces the overhead of copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
 Although the Windows machine has a relatively powerful CPU, the overheads measured in both the Python and C++ simulations run on this system are extremely large due to additional queuing between the application and the GPU driver  caused by the Windows Display Driver Model~(WDDM).
 When small -- in this case \SI{0.1}{\milli\second} -- simulation timesteps are used, this makes per-timestep synchronisation disproportionately expensive.
@@ -624,7 +624,7 @@ Furthermore, on the high-end desktop GPU, the simulation now runs faster than re
         \includegraphics{figures/izhikevich.pdf}
     \end{center}
     \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} of biological time.
-    `GPU stim' indicates simulations using the GPU stimuli delivery model and `recording' indicates simulations where the new recording system is employed.}
+    `GPU stim' indicates simulations using the GPU stimulus delivery model and `recording' indicates simulations where the new recording system is employed.}
     \label{fig:izhikevich}
 \end{figure}
 %
@@ -638,11 +638,11 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
         \includegraphics{figures/compare_overhead.pdf}
     \end{center}
     \caption{Comparison of the duration of individual timestep in Python and C++ simulation in microcircuit and Pavlovian conditioning experiments.
-    Times are taken from the fastest version of each model i.e. the microcircuit using the recording system and the Pavlovian conditioning model using the recording system and the GPU stimuli delivery.}
+    Times are taken from the fastest version of each model i.e. the microcircuit using the recording system and the Pavlovian conditioning model using the recording system and the GPU stimulus delivery.}
     \label{fig:compare_overhead}
 \end{figure}
 
-In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}. 
+In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
 These PyGeNN results are compared to a C++ simulation using both optimizations.
 Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
@@ -654,11 +654,11 @@ Although the clock speed of this device is approximately the same as the other G
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
 Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs as well as significantly larger L1 caches.
 As discussed in our previous work~\citep{Knight2018}, these architectural features are particularly beneficial for SNN simulations with STDP where a large amount of floating point computation is required to update the synaptic state \emph{and} additional integer arithmetic is required to calculate the indices into the sparse matrix data structures.
-Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimuli delivery to the GPU improves the performance significantly on the Windows machine.
+Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimulus delivery to the GPU improves the performance significantly on the Windows machine.
 
 The difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}).
-However, as figure~\ref{fig:compare_overhead} illustrates, the difference between the duration of individual timestep in Python and C++ simulations of both models is approximately constant and consistent with the cost of a small number of Python to C++ function calls~\citep{Crail2019}.
-However, depending on the size and complexity of the model as well as the hardware used, this overhead may still be significant.\todo{not really sure whether significant is what we want to say here}
+However, as figure~\ref{fig:compare_overhead} illustrates, for individual timesteps the excess time due to overheads is approximately the same for both models and consistent with the cost of a small number of Python to C++ function calls~\citep{Crail2019}.
+Depending on the size and complexity of the model as well as the hardware used, this overhead may or may not be important.\todo{not really sure whether significant is what we want to say here}
 For example, when simulating the microcircuit model for \SI{1}{\second} on the Titan RTX, the overhead of using Python is less than \SI{0.2}{\percent} but, when simulating the Pavlovian conditioning model on the same device, the overhead of using Python is almost \SI{31}{\percent}.
 
 \section{Discussion}
@@ -669,7 +669,7 @@ PyGeNN also allows bespoke neuron and synapse models to be defined from within P
 
 In many ways, the new interface resembles elements of the Python-based Brian 2 simulator~\citep{Stimberg2019}~(and it's Brian2GeNN backend~\citep{Stimberg2020}) with two key differences.
 Unlike in Brian 2, bespoke models in PyGeNN are defined with `C-like' code snippets. 
-This has the advantage of unparalleled flexibility for the expert user but, comes at the cost of more complexity as the code for a timestep update needs to include a suitable solver as well as merely differential equations.
+This has the advantage of unparalleled flexibility for the expert user, but comes at the cost of more complexity as the code for a timestep update needs to include a suitable solver as well as merely differential equations.
 The second difference lies in how data structures are handled. 
 Whereas simulations run using the C++ or Brian2GeNN Brian 2 backends use files to exchange data with Python, the underlying GeNN data structures are directly accessible from PyGeNN meaning that no disk access is involved.
 
@@ -703,8 +703,8 @@ JK is currently the primary developer of both GeNN and PyGeNN and was responsibl
 JK performed the experiments and the analysis of the results that are presented in this work.
 
 \section*{Funding}
-This work was funded by the EPSRC (Brains on Board project, grant number EP/P006094/1).
-\todo{thomas, add HBP funding}
+This work was funded by the EPSRC (Brains on Board project, grant number EP/P006094/1), the
+European Union’s Horizon 2020 research and innovation program under Grant Agreement 945539 (HBP SGA3) and a Google Summer of Code grant to AK .
 
 \section*{Acknowledgments}
 This is a short text to acknowledge the contributions of specific colleagues, institutions, or agencies that aided the efforts of the authors.
