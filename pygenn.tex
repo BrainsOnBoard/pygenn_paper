@@ -525,7 +525,7 @@ stim_noise_model = create_custom_current_source_class(
         """)
 \end{lstlisting}
 
-where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses the `XORWOW' pseudo-random number generator provided by cuRAND~\todo{cite} to sample from $U(0,1)$. 
+where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses the `XORWOW' pseudo-random number generator provided by cuRAND~\citep{NVIDIACorporation2019} to sample from $U(0,1)$. 
 Once a current source population using this model has been instantiated and a memory view to \lstinline{iExt} obtained in the manner described in section~\ref{sec:methods/pygenn}, in timesteps when stimulus injection is required, current can be injected into the list of neurons contained in \lstinline{stimuli_input_set} with:
 \begin{lstlisting}[language=python]
 curr_ext_view[stimuli_input_set] = 40.0
@@ -594,8 +594,9 @@ In the following subsections we will analyse the performance of the models intro
 All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 Ti which runs Windows 10.
 
 \subsection{Cortical microcircuit model performance}
-Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model and, as one might predict, the Jetson Xavier NX is slower than the three desktop GPUs.
-However, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce cards and Titan RTX respectively, it still performs impressively.
+Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model.
+We measured the total simulation time by querying the \lstinline{std::chrono::high_resolution_clock} in C++ and the \lstinline{time.perf_counter} in Python before and after the simulation loop; and used CUDA's own event timing system~\citep[Section~3.2.5.6.2]{NVIDIACorporation2018} to record the time taken by the neuron and synapse kernels.
+As one might predict, the Jetson Xavier NX is slower than the three desktop GPUs but, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce cards and Titan RTX respectively, it still performs impressively.
 The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
 Interestingly, when simulating \emph{this} model, the larger L1 cache and architectural improvements present in the Turing-based GTX 1650 do not result in significantly improved performance over the Pascal-based GTX 1050Ti.
 Instead, the slightly improved performance of the GTX 1650 can probably be explained by its additional \num{128} CUDA cores.
@@ -618,7 +619,7 @@ Furthermore, on the high-end desktop GPU, the simulation now runs faster than re
         \includegraphics{figures/izhikevich.pdf}
     \end{center}
     \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} of biological time.
-             \todo{explanation of bars}}
+    `GPU stim' indicates simulations using the GPU stimuli delivery model and `recording' indicates simulations where the new recording system is employed.}
     \label{fig:izhikevich}
 \end{figure}
 %
@@ -636,12 +637,13 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
     \label{fig:compare_overhead}
 \end{figure}
 
-In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}.
+In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimuli-delivery described in section~\ref{sec:methods/izhikevich}. 
 These PyGeNN results are compared to a C++ simulation using both optimizations.
+Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
 This is because, as discussed previously, this model is simply not large enough to fill the \num{4608} CUDA cores present on the Titan RTX.
 Therefore, as the two GPUs share the same Turing architecture and have very similar clock speeds (\SIrange{1350}{1770}{\mega\hertz} for the Titan RTX and \SIrange{1485}{1665}{\mega\hertz} for the GTX 1650), the two GPUs perform very similarly.
-Furthermore, on these two systems, while using the recording system significantly improves performance, the impact of delivering stimuli on the GPU is minimal.
+Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system on these two systems still significantly improves the overall performance whereas, delivering stimuli on the GPU only provides a minimal improvement.
 However, unlike in the simulations of the microcircuit model, here the GTX 1050 Ti performs rather differently. 
 Although the clock speed of this device is approximately the same as the other GPUs (\SIrange{1290}{1392}{\mega\hertz}) and it has a similar number of CUDA cores to the GTX 1650, its performance is significantly worse.
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
