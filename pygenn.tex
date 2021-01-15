@@ -464,7 +464,7 @@ Other than implementing the potentiation case of equation~\ref{eq:stdp_pair} and
 %
 Adding the synaptic weight $w_{ij}$ update described by equation~\ref{eq:izhikevich_stdp_w} requires two components.
 In addition to pre and postsynaptic spikes, the weight update model needs to receive events whenever dopamine is injected via \text{DA}.
-\todo{improve sentance}
+\todo{improve sentence}
 GeNN supports such events via the `spike-like event' system which allows events to be triggered based on a condition applied to the presynaptic neuron.
 In this case, this condition is simply used to check an \lstinline{injectDopamine} flag set by the dopamine injection logic in our presynaptic neuron model:
 %
@@ -576,7 +576,8 @@ curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
     \caption{Results of Pavlovian conditioning experiment.
              Raster and spike density plots showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
              Downward green arrows indicate times at which CS is delivered and downward black arrows indicate times when other, un-rewarded stimuli are delivered. 
-             Vertical dashed lines indicate times at which dopamine is delivered}
+             Vertical dashed lines indicate times at which dopamine is delivered.
+             Mean rates are calculated by convolving the spike train with a spike density function with $\sigma=\SI{10}{\milli\second}$.\todo{thomas:is there a standard citation for this technique/is this a reasonable description?}}
     \label{fig:izhikevich_spikes}
 \end{figure}
 %
@@ -630,7 +631,8 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
     \begin{center}
         \includegraphics{figures/compare_overhead.pdf}
     \end{center}
-    \caption{Comparison of per-timestep overhead in microcircuit and Pavlovian conditioning experiments.}
+    \caption{Comparison of the duration of individual timestep in Python and C++ simulation in microcircuit and Pavlovian conditioning experiments.
+    Times are taken from the fastest version of each model i.e. the microcircuit using the recording system and the Pavlovian conditioning model using the recording system and the GPU stimuli delivery.}
     \label{fig:compare_overhead}
 \end{figure}
 
