@@ -84,13 +84,14 @@ Therefore, with both the computational neuroscience and machine learning communi
 NEST~\citep{Eppler2009}, NEURON~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now offer a Python interface.
 Furthermore, newer simulators such as Arbor and Brian2~\citep{Stimberg2019} have been designed from the ground up with a Python interface.
 
-While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using our GeNN simulator~(Yavuz2016), it has so far not been usable directly from Python.
-GeNN can already be used as a backend for the Python-based Brian2 simulator~\citep{Stimberg2019}. In brief, the Brian2GeNN interface~\citep{Stimberg2020} modifies the C++ backend ``cpp\_standalone'' of Brian 2 to generate C++ input files for GeNN. As for cpp\_standalone, initialisation of simulations is mostly done in C++ on the CPU and recording data is saved into binary files and re-imported into Python using Brian 2's native methods. While Brian2GeNN allows Brian2 users to harness the performance benefits that GeNN provides, it is not possible to expose all of GeNN's unique features to Python through the Brian2 API.
+Our GeNN simulator can already be used as a backend for the Python-based Brian2 simulator~\citep{Stimberg2019} using the Brian2GeNN interface.
+In brief, the Brian2GeNN interface~\citep{Stimberg2020} modifies the C++ backend ``cpp\_standalone'' of Brian 2 to generate C++ input files for GeNN. As for cpp\_standalone, initialisation of simulations is mostly done in C++ on the CPU and recording data is saved into binary files and re-imported into Python using Brian 2's native methods.
+While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using GeNN in C++, and through the Brian2GeNN interface~\citep{Stimberg2020}, it could so far not be used directly from Python and it is not possible to expose all of GeNN's unique features to Python through the Brian2 API.
 Specifically, GeNN not only allows users to easily define their own neuron and synapse models but, also `snippets' for offloading the potentially costly initialisation of model parameters and connectivity onto the GPU.
 Additionally, GeNN  provides a lot of freedom for users to integrate their own code into the simulation loop.
 In this paper we describe the implementation of PyGeNN -- a Python package which aims to expose the full range of GeNN functionality with minimal performance overheads.
-While implementing new neuron and synapse models in the majority of other GPU simulators requires extending the underling C++ code, using PyGeNN, models can be defined directly from Python.
-Finally, we demonstrate the flexibility and performance of PyGeNN in two scenarios where minimising performance overheads is particularly critical.
+Unlike in the majority of other GPU simulators PyGeNN allows defining bespoke neuron and synapse models directly from Python without requiring users to extend the underling C++ code.
+Below, we demonstrate the flexibility and performance of PyGeNN in two scenarios where minimising performance overheads is particularly critical.
 \begin{itemize}
     \item In a simulation of a large, highly-connected model of a cortical microcircuit~\citep{Potjans2012} with small simulation timesteps. Here the cost of copying spike data off the GPU from a large number of neurons every timestep can become a bottleneck.
     \item In a simulation of a much smaller model of Pavlovian conditioning~\citep{Izhikevich2007} where learning occurs over \SI{1}{\hour} of biological time and stimuli are delivered -- following a complex scheme -- throughout the simulation. Here any overheads are multiplied by a large number of timesteps and copying stimuli to the GPU can become a bottleneck.
@@ -100,7 +101,7 @@ Using the facilities provided by PyGeNN, we show that both scenarios can be simu
 \section{Materials and Methods}
 \subsection{GeNN}
 \label{sec:methods/genn}
-GeNN~\citep{Yavuz2016} is a library for generating CUDA code for the simulation of spiking neural network models.
+GeNN~\citep{Yavuz2016} is a library for generating CUDA~\citep{CUDA2020} code for the simulation of spiking neural network models.
 GeNN handles much of the complexity of using CUDA directly as well as automatically performing device-specific optimizations so as to to maximize performance.
 
 GeNN consists of a main library -- implementing the API used to define models as well as the generic parts of the code generator -- and an additional library for each backend (currently there is a reference C++ backend for generating CPU code and a CUDA backend. An OpenCL backend is under development).
@@ -203,10 +204,10 @@ model.dT = 0.1
 
 izk_init = {"V": -65.0,
             "U": -20.0,
-            "a": [0.02,     0.1,    0.02,   0.02],
-            "b": [0.2,      0.2,    0.2,    0.2],
-            "c": [-65.0,    -65.0,  -50.0,  -55.0],
-            "d": [8.0,      2.0,    2.0,    4.0]}
+            "a": [0.02, 0.1, 0.02, 0.02],
+            "b": [0.2, 0.2, 0.2, 0.2],
+            "c": [-65.0, -65.0, -50.0, -55.0],
+            "d": [8.0, 2.0, 2.0, 4.0]}
 
 pop = model.add_neuron_population("Pop", 4, "IzhikevichVariable", {}, izk_init)
 model.add_current_source("CS", "DC", "Pop", {"amp": 10.0}, {})
