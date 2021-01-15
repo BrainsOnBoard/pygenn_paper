@@ -60,13 +60,13 @@ $^{2}$\todo{Anton's affiliatino}}
 
 %%% Leave the Abstract empty if your article does not require one, please see the Summary Table for full details.
 \section{}
-More than half of the Top 10 supercomputing sites worldwide use GPU accelerators and they are ubiquitous in workstations and edge computing devices.
+More than half of the Top 10 supercomputing sites worldwide use GPU accelerators and they are becoming ubiquitous in workstations and edge computing devices.
 GeNN is a C++ library for generating efficient spiking neural network simulation code for GPUs.
 However, until now, the full flexibility of GeNN could only be harnessed by writing model descriptions and simulation code in C++.
 Here we present PyGeNN, a Python package which exposes all of GeNN's functionality to Python with minimal overhead.
 This provides an alternative, arguably more user-friendly, way of using GeNN and allows modellers to use GeNN within the growing Python-based machine learning and computational neuroscience ecosystems.
-In addition, we demonstrate that, in both Python and C++ GeNN simulations, the overheads of recording spiking data can strongly affect runtimes and show how a new spike recording system can reduce these overheads by up to a factor of 10.
-Using the new recording system, we demonstrate that by using PyGeNN on a modern GPU, we can simulate a full-scale model of a cortical column faster even than real-time neuromorphic systems can achieve.
+In addition, we demonstrate that, in both Python and C++ GeNN simulations, the overheads of recording spiking data can strongly affect runtimes and show how a new spike recording system can reduce these overheads by up to $10\times$.
+Using the new recording system, we demonstrate that by using PyGeNN on a modern GPU, we can simulate a full-scale model of a cortical column faster even than real-time neuromorphic systems.
 Finally, we show that long simulations of a smaller model with complex stimuli and a custom three-factor learning rule defined in PyGeNN can be simulated up to $72\times$ faster than real-time.
 
 \tiny
@@ -81,16 +81,15 @@ For performance reasons, many of these simulators are written in C++ and, especi
 For programming language purists, a DSL may be an elegant way of describing an SNN network model and, for simulator developers, not having to add bindings to another language is convenient.
 However, both choices act as a barrier to potential users.
 Therefore, with both the computational neuroscience and machine learning communities gradually coalescing towards a Python-based ecosystem with a wealth of mature libraries for scientific computing~\citep{Hunter2007,VanDerWalt2011,Millman2011}, exposing spiking neural network simulators to Python seems a pragmatic choice.
-NEST~\citep{Eppler2009}, NEURON~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now offer a Python interface.
+NEST~\citep{Eppler2009}, NEURON~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now all offer Python interfaces.
 Furthermore, newer simulators such as Arbor and Brian2~\citep{Stimberg2019} have been designed from the ground up with a Python interface.
 
-Our GeNN simulator can already be used as a backend for the Python-based Brian2 simulator~\citep{Stimberg2019} using the Brian2GeNN interface.
-In brief, the Brian2GeNN interface~\citep{Stimberg2020} modifies the C++ backend ``cpp\_standalone'' of Brian 2 to generate C++ input files for GeNN. As for cpp\_standalone, initialisation of simulations is mostly done in C++ on the CPU and recording data is saved into binary files and re-imported into Python using Brian 2's native methods.
-While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using GeNN in C++, and through the Brian2GeNN interface~\citep{Stimberg2020}, it could so far not be used directly from Python and it is not possible to expose all of GeNN's unique features to Python through the Brian2 API.
+Our GeNN simulator can already be used as a backend for the Python-based Brian2 simulator~\citep{Stimberg2019} using the Brian2GeNN interface~\citep{Stimberg2020} which modifies the C++ backend ``cpp\_standalone'' of Brian 2 to generate C++ input files for GeNN. As for cpp\_standalone, initialisation of simulations is mostly done in C++ on the CPU and recording data is saved into binary files and re-imported into Python using Brian 2's native methods.
+While we have recently demonstrated some very competitive performance results~\citep{Knight2018,Knight2020} using GeNN in C++, and through the Brian2GeNN interface~\citep{Stimberg2020}, GeNN could so far not be used directly from Python and it is not possible to expose all of GeNN's unique features through the Brian2 API.
 Specifically, GeNN not only allows users to easily define their own neuron and synapse models but, also `snippets' for offloading the potentially costly initialisation of model parameters and connectivity onto the GPU.
 Additionally, GeNN  provides a lot of freedom for users to integrate their own code into the simulation loop.
 In this paper we describe the implementation of PyGeNN -- a Python package which aims to expose the full range of GeNN functionality with minimal performance overheads.
-Unlike in the majority of other GPU simulators PyGeNN allows defining bespoke neuron and synapse models directly from Python without requiring users to extend the underling C++ code.
+Unlike in the majority of other SNN simulators PyGeNN allows defining bespoke neuron and synapse models directly from Python without requiring users to extend the underling C++ code.
 Below, we demonstrate the flexibility and performance of PyGeNN in two scenarios where minimising performance overheads is particularly critical.
 \begin{itemize}
     \item In a simulation of a large, highly-connected model of a cortical microcircuit~\citep{Potjans2012} with small simulation timesteps. Here the cost of copying spike data off the GPU from a large number of neurons every timestep can become a bottleneck.
@@ -102,8 +101,7 @@ Using the facilities provided by PyGeNN, we show that both scenarios can be simu
 \subsection{GeNN}
 \label{sec:methods/genn}
 GeNN~\citep{Yavuz2016} is a library for generating CUDA~\citep{CUDA2020} code for the simulation of spiking neural network models.
-GeNN handles much of the complexity of using CUDA directly as well as automatically performing device-specific optimizations so as to to maximize performance.
-
+GeNN handles much of the complexity of using CUDA directly and automatically performs device-specific optimizations so as to to maximize performance.
 GeNN consists of a main library -- implementing the API used to define models as well as the generic parts of the code generator -- and an additional library for each backend (currently there is a reference C++ backend for generating CPU code and a CUDA backend. An OpenCL backend is under development).
 Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of 4 Izhikevich neurons with heterogeneous parameters, driven by a constant input current might be defined as follows:
 %
@@ -127,7 +125,7 @@ void modelDefinition(ModelSpec &model)
 %
 The \emph{genn-buildmodel} command line tool is then used to compile this file; link it against the main GeNN library and the desired backend library; and finally run the resultant executable to generate the source code required to build a simulation dynamic library (a .dll file on Windows or a .so file on Linux and Mac).
 This dynamic library can then either be statically linked against a simulation loop provided by the user or dynamically loaded by the user's simulation code.
-To demonstrate this latter approach, this example uses the \lstinline{SharedLibraryModel} helper class supplied with GeNN to dynamically load the previously defined model, initialise the heterogenous neuron parameters and print each neuron's membrane voltage every timestep: 
+To demonstrate this latter approach, the following example uses the \lstinline{SharedLibraryModel} helper class supplied with GeNN to dynamically load the previously defined model, initialise the heterogenous neuron parameters and print each neuron's membrane voltage every timestep: 
 %
 \begin{lstlisting}[language=C++]
 #include "sharedLibraryModel.h"
@@ -137,21 +135,22 @@ int main()
     SharedLibraryModel<float> model("./", "izhikevich");
     model.allocateMem();
     model.initialize();
-    float *aPop = model.getScalar<float>("a");
-    float *bPop = model.getScalar<float>("b");
-    float *cPop = model.getScalar<float>("c");
-    float *dPop = model.getScalar<float>("d");
-    aPop[0] = 0.02; bPop[0] = 0.2;  cPop[0] = -65.0;    dPop[0] = 8.0;  // RS
-    aPop[1] = 0.1;  bPop[1] = 0.2;  cPop[1] = -65.0;    dPop[1] = 2.0;  // FS
-    aPop[2] = 0.02; bPop[2] = 0.2;  cPop[2] = -50.0;    dPop[2] = 2.0;  // CH
-    aPop[3] = 0.02; bPop[3] = 0.2;  cPop[3] = -55.0;    dPop[3] = 4.0;  // IB
+    float *aPop = model.getScalar<float>("aPop");
+    float *bPop = model.getScalar<float>("bPop");
+    float *cPop = model.getScalar<float>("cPop");
+    float *dPop = model.getScalar<float>("dPop");
+    aPop[0] = 0.02; bPop[0] = 0.2; cPop[0] = -65.0; dPop[0] = 8.0;
+    aPop[1] = 0.1;  bPop[1] = 0.2; cPop[1] = -65.0; dPop[1] = 2.0;
+    aPop[2] = 0.02; bPop[2] = 0.2; cPop[2] = -50.0; dPop[2] = 2.0;
+    aPop[3] = 0.02; bPop[3] = 0.2; cPop[3] = -55.0; dPop[3] = 4.0;
     model.initializeSparse();
 
     float *vPop = model.getScalar<float>("VPop");
     while(model.getTime() < 200.0f) {
         model.stepTime();
         model.pullVarFromDevice("Pop", "V");
-        printf("%f, %f, %f, %f, %f\n", t, VPop[0], VPop[1], VPop[2], VPop[3]);
+        printf("%f, %f, %f, %f, %f\n", 
+               t, VPop[0], VPop[1], VPop[2], VPop[3]);
     }
     return EXIT_SUCCESS;
 }
@@ -159,16 +158,17 @@ int main()
 
 \subsection{SWIG}
 In order to use GeNN from Python, both the model creation API and the \lstinline{SharedLibraryModel} functionality need to be `wrapped' so they can be called from Python.
-While this is possible using the API built into Python itself, a wrapper function would need to be manually implemented for each GeNN function to be exposed which would result in a lot of maintenance overhead.
+While this is possible using the API built into Python itself, wrapper functions would need to be manually implemented for each GeNN function to be exposed which would result in a lot of maintenance overhead.
 Instead, we chose to use SWIG~\citep{Beazley1996} to automatically generate wrapper functions and classes. 
-SWIG generates Python modules based on special interface files which can directly include C++ code as well as special `directives' which control SWIG, for instance:
+SWIG generates Python modules based on special interface files which can directly include C++ code as well as special `directives' which control SWIG.
+For example. the following SWIG interface file would wrap the C++ code in test.h in a Python module called \lstinline{test_module} within a Python packages called \lstinline{test_package}:
 %
 \begin{lstlisting}[language=C++]
-%module(package="package") package
+%module(package="test_package") test_module
 %include "test.h" 
 \end{lstlisting}
 %
-where the \lstinline{%module} directive sets the name of the generated module and the package it will be located in and the \lstinline{%include} directive parses and automatically generates wrapper functions for a C++ header file.
+The \lstinline{%module} directive sets the name of the generated module and the package it will be located in and the \lstinline{%include} directive parses and automatically generates wrapper functions for the C++ header file.
 We use SWIG in this manner to wrap both the model building and \lstinline{SharedLibraryModel} APIs described in section~\ref{sec:methods/genn}.
 However, key parts of GeNN's API such as the \lstinline{ModelSpec::addNeuronPopulation} method employed in section~\ref{sec:methods/genn}, rely on C++ templates which are not directly translatable to Python.
 Instead, valid template instantiations need to be given a unique name in Python using the \lstinline{%template} SWIG directive:
@@ -178,11 +178,11 @@ Instead, valid template instantiations need to be given a unique name in Python 
 \end{lstlisting}
 %
 Having to manually add these directives whenever a model is added to GeNN would be exactly the sort of maintenance overhead we were trying to avoid by using SWIG.
-Instead, when building the Python wrapper, we search the GeNN header files for the macros used to declare models in C++ and automatically generate SWIG \lstinline{%template} directives.
+Therefore, when building the Python wrapper, we instead search the GeNN header files for the macros used to declare models in C++ and automatically generate SWIG \lstinline{%template} directives.
 
 As previously discussed, a key feature of GeNN is the ease with which it allows users to define their own neuron and synapse models as well as `snippets' defining how variables and connectivity should be initialised.
 Beneath the syntactic sugar described in our previous work~\citep{Knight2018}, new models can be defined in C++ by defining a new class derived from, for example, the \lstinline{NeuronModels::Base} class.
-The ability to extend this system to Python was a key requirement of PyGeNN and, by using SWIG `directors', C++ classes can be made inheritable from Python using a single SWIG directive:
+The ability to extend this system to Python was a key requirement of PyGeNN and, by using SWIG `director', C++ classes can be made inheritable from Python using a single SWIG directive:
 %
 \begin{lstlisting}[language=C++]
 %feature("director") NeuronModels::Base; 
@@ -190,9 +190,9 @@ The ability to extend this system to Python was a key requirement of PyGeNN and,
 
 \subsection{PyGeNN}
 \label{sec:methods/pygenn}
-While GeNN \emph{could} be used from Python via the wrapper generated using the techniques described in the previous section, the resultant code would be unpleasant to use directly.
-For example, rather than being able to specify neuron parameters using a native Python data structure such as a list or dictionary, one would have to use a wrapped type such as \lstinline{DoubleVector([0.25, 10.0, 0.0, 0.0, 20.0, 2.0, 0.5])}.
-To provide a more user-friendly and pythonic interface, we have built PyGeNN on top of the wrapper generated by SWIG.
+While GeNN \emph{could} be used from Python via the wrapper generated using SWIG, the resultant code would be unpleasant to use directly.
+For example, rather than being able to specify neuron parameters using a native Python types such as lists or dictionaries, one would have to use a wrapped type such as \lstinline{DoubleVector([0.25, 10.0, 0.0, 0.0, 20.0, 2.0, 0.5])}.
+Therefore, in order to provide a more user-friendly and pythonic interface, we have built PyGeNN on top of the wrapper generated by SWIG.
 PyGeNN combines the separate model building and simulation stages of building a GeNN model in C++ into a single API, likely to be more familiar to users of existing Python-based model description languages such as PyNEST~\citep{Eppler2009} or PyNN~\citep{Davison2008}.
 By combining the two stages together, PyGeNN can provide a unified dictionary-based API for initialising homogeneous and heterogeneous parameters as shown in this re-implementation of the previous example:
 %
@@ -209,8 +209,10 @@ izk_init = {"V": -65.0,
             "c": [-65.0, -65.0, -50.0, -55.0],
             "d": [8.0, 2.0, 2.0, 4.0]}
 
-pop = model.add_neuron_population("Pop", 4, "IzhikevichVariable", {}, izk_init)
-model.add_current_source("CS", "DC", "Pop", {"amp": 10.0}, {})
+pop = model.add_neuron_population("Pop", 4, "IzhikevichVariable", 
+                                  {}, izk_init)
+model.add_current_source("CS", "DC", "Pop", 
+                         {"amp": 10.0}, {})
 
 model.build()
 model.load()
@@ -219,16 +221,17 @@ v = pop.vars["V"].view
 while model.t < 200.0:
     model.step_time()
     model.pull_state_from_device("Pop")
-    print("%t, %f, %f, %f, %f" % (model.t, v[0], v[1], v[2], v[3]))
+    print("%f, %f, %f, %f, %f" 
+           % (model.t, v[0], v[1], v[2], v[3]))
 \end{lstlisting}
 %
-Initialisation of variables with homogeneous values -- such as the neurons' membrane potential -- is performed by GeNN and those with heterogeneous values -- such as the \lstinline{a}, \lstinline{b} and \lstinline{c} parameters -- are initialised by PyGeNN when the model is loaded.
+Initialisation of variables with homogeneous values -- such as the neurons' membrane potential -- is performed by initialisation kernels generated by GeNN and initialisation of variables with heterogeneous values -- such as the \lstinline{a}, \lstinline{b} and \lstinline{c} parameters -- are copied to the GPU by PyGeNN after the model is loaded.
 While the PyGeNN API is more pythonic and, hopefully, more user-friendly than the C++ interface, it still provides users with the same low-level control over the simulation.
 Furthermore, by using SWIG's numpy~\citep{VanDerWalt2011} interface, the host memory allocated by GeNN can be accessed directly from Python using the \lstinline{pop.vars["V"].view} syntax meaning that no potentially expensive additional copying of data is required.
 
 As illustrated in the previously-defined model, for convenience, PyGeNN allows users to access GeNN's built-in models.
 However, one of PyGeNN's most powerful features is that it enables users to easily define their own neuron and synapse models from within Python.
-For example, an Izhikevich neuron model~\citep{Izhikevich2003a} can be defined using the \lstinline{create_custom_neuron_class} helper function which provides some syntactic sugar over the model class inheritance described in the previous section:
+For example, an Izhikevich neuron model~\citep{Izhikevich2003a} can be defined using the \lstinline{create_custom_neuron_class} helper function which provides some syntactic sugar over directly inheriting from the SWIG director class:
 %
 \begin{lstlisting}[language=Python]
 izk_model = genn_model.create_custom_neuron_class(
@@ -249,11 +252,11 @@ izk_model = genn_model.create_custom_neuron_class(
         """)
 \end{lstlisting}
 %
-The \lstinline{param_names} list defines the real-valued parameters that are constant across the whole population of neurons and the \lstinline{var_name_types} list defines the model state variables and their type (the \lstinline{scalar} type is an alias for single or double-precision floating point, depending on the precision passed to the \lstinline{GeNNModel} constructor).
-The behaviour of the model can then be defined using a number of code strings.
-Unlike in tools like Brian 2~\citep{Stimberg2019}, these code strings are specified in a C-like language rather than in terms of differential equations.
+The \lstinline{param_names} list defines the real-valued parameters that are constant across the whole population of neurons and the \lstinline{var_name_types} list defines the model state variables and their type (the \lstinline{scalar} type is an alias for either single or double-precision floating point, depending on the precision passed to the \lstinline{GeNNModel} constructor).
+The behaviour of the model is then defined using a number of code strings.
+Unlike in tools like Brian 2~\citep{Stimberg2019}, these code strings are specified in a C-like language rather than using differential equations.
 This allows expert users to choose their own solver for models described in terms of differential equations and to programatically define models such as spike sources.
-For example, in our example model, we chose to implement this neuron using the idiomatic forward Euler integration scheme employed by \citet{Izhikevich2003a}.
+For example, in the model presented above, we chose to implement the neuron using the idiomatic forward Euler integration scheme employed by \citet{Izhikevich2003a}.
 Finally, the \lstinline{threshold_condition_code} expression defines \emph{when} the neuron will spike whereas the \lstinline{reset_code} code string defines how the state variables should be reset after a spike.
 %
 \begin{figure}[t!]
@@ -272,20 +275,20 @@ Finally, the \lstinline{threshold_condition_code} expression defines \emph{when}
 \label{sec:methods/spike_recording}
 Internally, GeNN stores the spikes emitted by a neuron population during one simulation timestep in an array containing the indices of the neurons that spiked alongside a counter of how many spikes have been emitted.
 Previously, recording spikes in GeNN was very similar to the recording of voltages shown in the previous example code -- the array of neuron indices was simply copied from the GPU to the CPU every timestep.
-However, especially when simulating models with a small simulation timestep, such frequent synchronization between the CPU and GPU is costly -- especially if a higher-level language such as Python is involved.
+However, especially when simulating models with a small simulation timestep, such frequent synchronization between the CPU and GPU is costly -- especially if a slower, interpreted language such as Python is involved.
 Furthermore, biological neurons typically spike at a low rate (in the cortex, the average firing rate is only around \SI{3}{\hertz}~\citep{Buzsaki2014}) meaning that the amount of spike data transferred every timestep is typically very small.
-To address both of these sources of inefficiency, we have added a new data structure to GeNN which stores spike data for many timesteps on device.
+To address both of these sources of inefficiency, we have added a new data structure to GeNN which stores spike data for many timesteps on the GPU.
 To reduce the memory required for this data structure and to make its size independent of neural activity, the spikes emitted by a population of $N$ neurons in a single simulation timestep are stored in a $N\si{\bit}$ bitfield where a `1' represents a spike and a `0' the absence of one.
-Spiking data over multiple timesteps is then represented by bitfields stored in a circular buffer.
+Spiking data over multiple timesteps is then represented by a circular buffer of these bitfields.
 Using this approach, even the spiking output of relatively large models, running for many timesteps can be stored in a small amount of memory.
 For example, the spiking output of a model with \num{100E3} neurons running for \num{10E3} simulation timesteps, required less than \SI{120}{\mega\byte} -- a small fraction of the memory on a modern GPU.
 While efficiently handling spikes stored in a bitfield is a little trickier than working with a list of neuron indices, GeNN provides an efficient C++ helper function for saving the spikes stored in a bitfield to a text file and a numpy-based method for decoding them in PyGeNN. 
 
 \subsection{Cortical microcircuit model}
 \label{sec:methods/cortical_microcircuit}
-\citet{Potjans2012} developed a cortical microcircuit model of \SI{1}{\milli\metre\cubed} of early-sensory cortex.
-The model consists of \num{77169} LIF neurons, divided into separate populations representing the excitatory and inhibitory population in each of 4 cortical layers~(2/3, 4, 5 and 6) as illustrated by figure~\ref{fig:potjans_circuit}.
-The membrane voltage $V_{i}$ of each neuron $i$ is modelled as
+\citet{Potjans2012} developed the cortical microcircuit model of \SI{1}{\milli\metre\cubed} of early-sensory cortex illustrated in figure~\ref{fig:potjans_circuit}.
+The model consists of \num{77169} LIF neurons, divided into separate populations representing the excitatory and inhibitory population in each of 4 cortical layers~(2/3, 4, 5 and 6).
+The membrane voltage $V_{i}$ of each neuron $i$ is modelled as:
 %
 \begin{align}
     \tau_{\text{m}} \frac{dV_{i}}{dt} = & (V_{\text{rest}} - V_{i}) + R_{\text{m}}(I_{\text{syn}_{i}} + I_{\text{ext}_{i}}), \label{eq:lif_neuron}
@@ -297,19 +300,19 @@ Neurons in each population are connected randomly with numbers of synapses deriv
 These synapses are current-based, i.e.~presynaptic spikes lead to exponentially-decaying input currents $I_{\text{syn}_{i}}$
 %
 \begin{align}
-    \tau_{\text{syn}} \frac{dI_{\text{syn}_{i}}}{dt} = & -I_{\text{syn}_{i}} + \sum_{i=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}),\label{eq:exp_neuron_input_current}
+    \tau_{\text{syn}} \frac{dI_{\text{syn}_{i}}}{dt} = & -I_{\text{syn}_{i}} + \sum_{j=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}),\label{eq:exp_neuron_input_current}
 \end{align}
 %
-where $\tau_{\text{syn}} = \SI{0.5}{\milli\second}$ represents the synaptic time constant and $t_{j}$ are the arrival times of incoming spikes from $n$ presynaptic neurons.
+where $\tau_{\text{syn}} = \SI{0.5}{\milli\second}$ represents the synaptic time constant, $w_{ij}$ represents the synaptic weight and $t_{j}$ are the arrival times of incoming spikes from $n$ presynaptic neurons.
 Within each synaptic projection, all synaptic strengths and transmission delays are normally distributed using the parameters presented in \citet[table 5]{Potjans2012} and, in total, the model has approximately \num{0.3E9} synapses.
 As well as receiving synaptic input, each neuron in the network also receives an independent Poisson input current, representing input from neighbouring not explicitly modelled cortical regions.
 The Poisson input is delivered to each neuron via $I_{\text{ext}_{i}}$ with
 %
 \begin{align}
-    \tau_{\text{syn}} \frac{dI_{\text{ext}_{i}}}{dt} = & -I_{\text{ext}_{i}} + J \text{Poisson}(\nu_{\text{ext}} \Delta t),\label{eq:poisson_input_current}
+    \tau_{\text{syn}} \frac{dI_{\text{ext}_{i}}}{dt} = & -I_{\text{ext}_{i}} + w_{\text{ext}} \text{Poisson}(\nu_{\text{ext}} \Delta t),\label{eq:poisson_input_current}
 \end{align}
 %
-where $\tau_{\text{syn}}=\SI{0.5}{\milli\second}$, $\nu_{\text{ext}}$ represents the mean input rate and $J$ represents the weight.
+where $\nu_{\text{ext}}$ represents the mean input rate and $w_{\text{ext}}$ represents the weight.
 The ordinary differential equations~\ref{eq:lif_neuron},~\ref{eq:exp_neuron_input_current}~and~\ref{eq:poisson_input_current} are solved with an exponential Euler algorithm.
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
@@ -322,19 +325,20 @@ This model requires simulation using a relatively small timestep of \SI{0.1}{\mi
     The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
     Connection probabilities are shown in small bold numbers at the appropriate point in the connection matrix.
     All excitatory synaptic weights are plastic and initialised to \num{1} and all inhibitory synaptic weights are initialised to \num{-1}.}
-    \label{fig:potjans_circuit}
+    \label{fig:pavlovian_circuit}
 \end{figure}
 %
 \subsection{Pavlovian conditioning model}
 \label{sec:methods/izhikevich}
 The cortical microcircuit model described in the previous section is ideal for exploring the performance of short simulations of relatively large models.
-However, the performance of longer simulations of smaller models is equally vital.%%\todo{determine e.g. percentage models e.g. on OpenSourceBrain which are small}.
+However, the performance of longer simulations of smaller models is equally vital.
+%\todo{determine e.g. percentage models e.g. on OpenSourceBrain which are small}.
 Such models can be particularly troublesome for GPU simulation as, not only might they not offer enough parallelism to fully occupy the device but, each timestep can be simulated so quickly that the overheads of launching kernels etc can dominate.
 Additional overheads can be incurred when models require injecting external stimuli throughout the simulation.
 Longer simulations are particularly useful when exploring synaptic plasticity so, to explore the performance of PyGeNN in this scenario, we simulate a model of Pavlovian conditioning using a three-factor Spike-Timing-Dependent Plasticity~(STDP) learning rule~\citep{Izhikevich2007}.
 
 \subsubsection{Neuron model}
-This model consists of an \num{800} neuron excitatory population and a \num{200} neuron inhibitory population, within which, each neuron $i$ is modelled using the Izhikevich model~\citep{Izhikevich2003a} whose dimensionless membrane voltage $V_{i}$ and adaption variables $U_i$ evolve such that:
+The model illustrated in figure~\ref{fig:pavlovian_circuit} consists of an \num{800} neuron excitatory population and a \num{200} neuron inhibitory population, within which, each neuron $i$ is modelled using the Izhikevich model~\citep{Izhikevich2003a} whose dimensionless membrane voltage $V_{i}$ and adaption variables $U_i$ evolve such that:
 %
 \begin{align}
     \frac{dV_i}{dt} = & 0.04 V_i^2 + 5V_i + 140 - U_i + I_{\text{syn}_{i}} + I_{\text{ext}_{i}} \label{eq:izhikevich_v} \\
@@ -344,14 +348,14 @@ This model consists of an \num{800} neuron excitatory population and a \num{200}
 When the membrane voltage rises above 30, a spike is emitted and $V_i$ is reset to $c$ and $d$ is added to $U_i$.
 Excitatory neurons use the regular-spiking parameters~\citep{Izhikevich2003a} where $a = 0.02$, $b = 0.2$, $c = -65.0$, $d = 8.0$ and inhibitory neurons use the fast-spiking parameters~\citep{Izhikevich2003a} where $a = 0.1$, $b = 0.2$, $c = -65.0$, $d = 2.0$.
 Again, $I_{\text{syn}_{i}}$ represents the synaptic input current and $I_{\text{ext}_i}$ represents an external input current.
-While there are numerous ways to solve equations~\ref{eq:izhikevich_v}~and~\ref{eq:izhikevich_u}~\citep{Humphries2007,Hopkins2015,Pauli2018}, we chose to use the forward Euler integration scheme employed by \citet{Izhikevich2003a}.
+While there are numerous ways to solve equations~\ref{eq:izhikevich_v}~and~\ref{eq:izhikevich_u}~\citep{Humphries2007,Hopkins2015,Pauli2018}, we chose to use the idiomatic forward Euler integration scheme employed by \citet{Izhikevich2003a} in the original work~\citep{Izhikevich2007}.
 Under this scheme, equation~\ref{eq:izhikevich_v} is first integrated for two \SI{0.5}{\milli\second} timesteps and then, based on the updated value of $V_i$, equation~\ref{eq:izhikevich_u} is integrated for a single \SI{1}{\milli\second} timestep.
 
 \subsubsection{Synapse models}
 The excitatory and inhibitory neural populations are connected recurrently, as shown in figure~\ref{fig:potjans_circuit}, with instantaneous current-based synapses:
 %
 \begin{align}
-    I_{\text{syn}_{i}}(t) = & \sum_{i=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}), \label{eq:delta_synapse}
+    I_{\text{syn}_{i}}(t) = & \sum_{j=0}^{n} w_{ij} \sum_{t_{j}}  \delta(t - t_{j}), \label{eq:delta_synapse}
 \end{align}
 %
 where $t_{j}$ are the arrival times of incoming spikes from $n$ presynaptic neurons.
@@ -363,7 +367,7 @@ Each plastic synapse has an eligibility trace $C_{ij}$ as well as a synaptic wei
     \frac{dw_{ij}}{dt} = & -C_{ij}D_j \label{eq:izhikevich_stdp_w}
 \end{align}
 %
-where $\tau_c=\SI{1000}{\milli\second}$ represents the decay time constant of the eligibility trace and $STDP(\Delta t)$ describes the magnitude of changes made to the eligibility trace based on the relative timing of a pair of pre and postsynaptic spikes with temporal difference $\Delta t=t_{post}-t_{pre}$.
+where $\tau_c=\SI{1000}{\milli\second}$ represents the decay time constant of the eligibility trace and $STDP(\Delta t)$ describes the magnitude of changes made to the eligibility trace in response to the relative timing of a pair of pre and postsynaptic spikes with temporal difference $\Delta t=t_{post}-t_{pre}$.
 These changes are only applied to the trace at the times of pre and postsynaptic spikes as indicated by the Dirac delta function $\delta(t-t_\text{pre/post})$.
 Here, a double exponential STDP kernel is employed such that:
 %
@@ -386,7 +390,7 @@ Finally, each excitatory neuron has an additional variable $D_j$ which describes
 where $\tau_d=\SI{200}{\milli\second}$ represents the time constant of dopamine uptake and $\text{DA}(t)$ the dopamine input over time.
 
 \subsubsection{PyGeNN implementation of three-factor STDP}
-The first step in implementing this learning rule in PyGeNN is to implement the STDP updates and decay of $C_{ij}$.
+The first step in implementing this learning rule in PyGeNN is to implement the STDP updates and decay of $C_{ij}$ using GeNN's event-driven plasticity system, the implementation of which was described in our previous work~\citep{Knight2018}.
 Using a similar syntax to that described in section~\ref{sec:methods/pygenn}, we first create a new `weight update model' with the learning rule parameters and the $w_{ij}$ and $C_{ij}$ state variables:
 %
 \begin{lstlisting}[language=python]
@@ -419,7 +423,7 @@ This code first implements equation~\ref{eq:delta_synapse} -- adding the synapti
         $(addToInSyn, $(w));
 \end{lstlisting}
 %
-Now we need to calculate the time that has elapsed since the last update of $C_{ij}$ using the spike times we previously requested that GeNN record.
+Within the sim code we also need to calculate the time that has elapsed since the last update of $C_{ij}$ using the spike times we previously requested that GeNN record.
 Within a timestep, GeNN processes presynaptic spikes before postsynaptic spikes so the time of the last update to $C_{ij}$ will be the latest time either type of spike was processed in previous timesteps:
 %
 \begin{lstlisting}
@@ -427,14 +431,14 @@ Within a timestep, GeNN processes presynaptic spikes before postsynaptic spikes 
                                $(prev_sT_post));
 \end{lstlisting}
 %
-Using this time, we can now calculate how much to decay $C_{ij}$ following equation~\ref{eq:izhikevich_stdp_c}:
+Using this time, we can now calculate how much to decay $C_{ij}$ using the closed-form solution to equation~\ref{eq:izhikevich_stdp_c}:
 %
 \begin{lstlisting}       
         const scalar tagDecay = exp(-($(t) - tc) / $(tauC));
         scalar newTag = $(c) * tagDecay;
 \end{lstlisting}
 %
-To complete the `sim code' we calculate the depression case of equation~\ref{eq:stdp_pair} (here we use the \emph{current} postsynaptic spike time as, if a postsynaptic and presynaptic spike occur in the same timestep, there should be no update).
+To complete the sim code we calculate the depression case of equation~\ref{eq:stdp_pair} (here we use the \emph{current} postsynaptic spike time as, if a postsynaptic and presynaptic spike occur in the same timestep, there should be no update).
 \begin{lstlisting}
         const scalar dt = $(t) - $(sT_post);
         if (dt > 0) {
@@ -463,24 +467,23 @@ Other than implementing the potentiation case of equation~\ref{eq:stdp_pair} and
         """)
 \end{lstlisting}
 %
-Adding the synaptic weight $w_{ij}$ update described by equation~\ref{eq:izhikevich_stdp_w} requires two components.
-In addition to pre and postsynaptic spikes, the weight update model needs to receive events whenever dopamine is injected via \text{DA}.
-\todo{improve sentence}
-GeNN supports such events via the `spike-like event' system which allows events to be triggered based on a condition applied to the presynaptic neuron.
-In this case, this condition is simply used to check an \lstinline{injectDopamine} flag set by the dopamine injection logic in our presynaptic neuron model:
+Adding the synaptic weight $w_{ij}$ update described by equation~\ref{eq:izhikevich_stdp_w} requires two further additions to the model.
+As well as the pre and postsynaptic spikes, the weight update model needs to receive events whenever dopamine is injected via \text{DA}.
+GeNN supports such events via the `spike-like event' system which allows events to be triggered based on an expression evaluated on the presynaptic neuron.
+In this case, this expression simply tests an \lstinline{injectDopamine} flag which gets set by the dopamine injection logic in our presynaptic neuron model:
 %
 \begin{lstlisting}
     event_threshold_condition_code="injectDopamine",
 \end{lstlisting}
 %
-In order to extend our event-driven update of $C_{ij}$ to include these events we need to instruct GeNN to record the times at which they occur:
+In order to extend our event-driven update of $C_{ij}$ to include spike-like events we need to instruct GeNN to record the times at which they occur:
 %
 \begin{lstlisting}
     is_pre_spike_event_time_required=True,
     is_prev_pre_spike_event_time_required=True,
 \end{lstlisting}
 %
-The spike-like events can now be handled using an `event code' string:
+The spike-like events can now be handled using a final `event code' string:
 %
 \begin{lstlisting}
     event_code=
@@ -491,8 +494,8 @@ The spike-like events can now be handled using an `event code' string:
         """,
 \end{lstlisting}
 %
-After updating the previously defined calculations of \lstinline{tc} in the sim code and learn post code to also include the times of spike-like events, all that remains is to update $w_{ij}$.
-\citet{Mikaitis2018} showed how equation~\ref{eq:izhikevich_stdp_w} could be integrated algebraically, allowing $w_{ij}$ to be updated in an event-driven manner with:
+After updating the previously defined calculations of \lstinline{tc} in the sim code and learn post code in the same way to also include the times of spike-like events, all that remains is to update $w_{ij}$.
+\citet{Mikaitis2018} showed how equation~\ref{eq:izhikevich_stdp_w} could be solved algebraically, allowing $w_{ij}$ to be updated in an event-driven manner with:
 %
 \begin{align}
     \Delta w_{ij} & = \frac{C(t_{c}^{last}) D(t_{d}^{last})}{-\left(\frac{1}{\tau_c} + \frac{1}{\tau_d}\right)} \left(e ^{-\frac{t - t_{c}^{last}}{\tau_c}} e ^{-\frac{t - t_{d}^{last}}{\tau_d}} - e ^{-\frac{t_{w}^{last} - t_{c}^{last}}{\tau_c}} e ^{-\frac{t_{w}^{last} - t_{d}^{last}}{\tau_d}}\right) \label{eq:general_weight_update}
@@ -508,7 +511,7 @@ Because we will always update $w_{ij}$ and $C_{ij}$ together when presynaptic, p
 and this update can now  be added to each of our three event handling code strings to complete the implementation of the learning rule.
 
 \subsubsection{PyGeNN implementation of Pavlovian conditioning experiment}
-To perform the Pavlovian conditioning experiment using this model, we chose \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) are chosen from amongst the two neural populations.
+To perform the Pavlovian conditioning experiment described by \citet{Izhikevich2007} using this model, we chose \num{100} random groups of \num{50} neurons (each representing stimuli $S_{1}$...$S_{100}$) from amongst the two neural populations.
 Stimuli are presented to the network in a random order, separated by intervals sampled from $U(100, 300) \si{\milli\second}$.
 The neurons associated with an active stimulus are stimulated for a single \SI{1}{\milli\second} simulation timestep with a current of \SI{40.0}{\nano\ampere}, in addition to the random background current of $U(-6.5,6.5) \si{\nano\ampere}$, delivered to each neuron via $I_{\text{ext}_{i}}$ throughout the simulation.
 $S_{1}$ is arbitrarily chosen as the Conditional Stimuli~(CS) and, whenever this stimuli is presented, a reward in the form of an increase in dopamine is delivered by setting $\text{DA}(t)=0.5$ after a delay sampled from $U(0, 1000) \si{\milli\second}$.
@@ -526,14 +529,14 @@ stim_noise_model = create_custom_current_source_class(
         """)
 \end{lstlisting}
 
-where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} uses the `XORWOW' pseudo-random number generator provided by cuRAND~\citep{NVIDIACorporation2019} to sample from $U(0,1)$. 
+where the \lstinline{n} parameter sets the magnitude of the background noise, the \lstinline{$(injectCurrent, I)} function injects a current of $I\si{\nano\ampere}$ into the neuron and \lstinline{$(gennrand_uniform)} samples from $U(0,1)$ using the `XORWOW' pseudo-random number generator provided by cuRAND~\citep{NVIDIACorporation2019}. 
 Once a current source population using this model has been instantiated and a memory view to \lstinline{iExt} obtained in the manner described in section~\ref{sec:methods/pygenn}, in timesteps when stimulus injection is required, current can be injected into the list of neurons contained in \lstinline{stimuli_input_set} with:
 \begin{lstlisting}[language=python]
 curr_ext_view[stimuli_input_set] = 40.0
 curr_pop.push_var_to_device("iExt")
 \end{lstlisting}
 The same approach can then be used to zero the current afterwards.
-However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, in order to reduce potential overheads, we can offload the stimulus delivery entirely to the GPU using the following slightly more complex model:
+However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, we can offload the stimulus delivery entirely to the GPU in order to reduce potential overheads, using the following slightly more complex model:
 
 \begin{lstlisting}[language=python]
 stim_noise_model = create_custom_current_source_class(
@@ -552,13 +555,14 @@ stim_noise_model = create_custom_current_source_class(
         $(injectCurrent, current);
         """)
 \end{lstlisting}
-This model retains the same logic for generating background noise but, additionally, uses a simple sparse matrix data structure to store the times at which each neuron should have current injected.
-\todo{figure}
-The \lstinline{startStim} and \lstinline{endStim} variables point to the subset of the \lstinline{stimTimes} array used by each neuron's current source and, once the simulation time \lstinline{$(t)} passes the time pointed to by \lstinline{startStim}, current is injected and \lstinline{startStim} is advanced.
-This array is stored in a `extra global parameter' which is a read-only memory area that can be allocated and populated from PyGeNN, in this case by `stacking' together a list of lists of spike times:
+This model retains the same logic for generating background noise but adds a \lstinline{stimTimes} array which contains the times at which each neuron should have current injected.
+This array is an `extra global parameter' -- a read-only memory area that can be allocated and populated from PyGeNN, in this case by `stacking' together a list of lists of spike times:
 \begin{lstlisting}
 curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
 \end{lstlisting}
+The \lstinline{startStim} and \lstinline{endStim} variables are then used to point to the subset of the \lstinline{stimTimes} array corresponding to each neuron.
+Once the simulation time~(\lstinline{$(t)}) passes the time at \lstinline{stimTimes[startStim]}, current is injected and \lstinline{startStim} is advanced.
+
 %
 \begin{figure}[t!]
     \begin{center}
