@@ -327,7 +327,7 @@ This model requires simulation using a relatively small timestep of \SI{0.1}{\mi
 \subsection{Pavlovian conditioning model}
 \label{sec:methods/izhikevich}
 The cortical microcircuit model described in the previous section is ideal for exploring the performance of short simulations of relatively large models.
-However, the performance of longer simulations of smaller models is equally vital.\todo{determine e.g. percentage models e.g. on OpenSourceBrain which are small}.
+However, the performance of longer simulations of smaller models is equally vital.%%\todo{determine e.g. percentage models e.g. on OpenSourceBrain which are small}.
 Such models can be particularly troublesome for GPU simulation as, not only might they not offer enough parallelism to fully occupy the device but, each timestep can be simulated so quickly that the overheads of launching kernels etc can dominate.
 Additional overheads can be incurred when models require injecting external stimuli throughout the simulation.
 Longer simulations are particularly useful when exploring synaptic plasticity so, to explore the performance of PyGeNN in this scenario, we simulate a model of Pavlovian conditioning using a three-factor Spike-Timing-Dependent Plasticity~(STDP) learning rule~\citep{Izhikevich2007}.
@@ -386,7 +386,7 @@ where $\tau_d=\SI{200}{\milli\second}$ represents the time constant of dopamine 
 
 \subsubsection{PyGeNN implementation of three-factor STDP}
 The first step in implementing this learning rule in PyGeNN is to implement the STDP updates and decay of $C_{ij}$.
-First, we create a new `weight update model' with the learning rules parameters and the $w_{ij}$ and $C_{ij}$ state variables:
+Using a similar syntax to that described in section~\ref{sec:methods/pygenn}, we first create a new `weight update model' with the learning rule parameters and the $w_{ij}$ and $C_{ij}$ state variables:
 %
 \begin{lstlisting}[language=python]
 izhikevich_stdp_model = create_custom_weight_update_class(
@@ -695,12 +695,13 @@ JK performed the experiments and the analysis of the results that are presented 
 
 \section*{Funding}
 This work was funded by the EPSRC (Brains on Board project, grant number EP/P006094/1).
+\todo{thomas, add HBP funding}
 
 \section*{Acknowledgments}
 This is a short text to acknowledge the contributions of specific colleagues, institutions, or agencies that aided the efforts of the authors.
 
 \section*{Data Availability Statement}
-The datasets [GENERATED/ANALYZED] for this study can be found in the [NAME OF REPOSITORY] [LINK].
+All models, data and analysis scripts used for this study can be found in \url{https://github.com/BrainsOnBoard/pygenn_paper}.
 % Please see the availability of data guidelines for more information, at https://www.frontiersin.org/about/author-guidelines#AvailabilityofData
 
 \bibliographystyle{frontiersinSCNS_ENG_HUMS} % for Science, Engineering and Humanities and Social Sciences articles, for Humanities and Social Sciences articles please include page numbers in the in-text citations
