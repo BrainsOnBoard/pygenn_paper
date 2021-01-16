@@ -600,7 +600,7 @@ All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 T
 
 \subsection{Cortical microcircuit model performance}
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model.
-We measured the total simulation time by querying the \lstinline{std::chrono::high_resolution_clock} in C++ and the \lstinline{time.perf_counter} in Python before and after the simulation loop; and used CUDA's own event timing system~\citep[Section~3.2.5.6.2]{NVIDIACorporation2018} to record the time taken by the neuron and synapse kernels.
+We measured the total simulation time by querying the \lstinline{std::chrono::high_resolution_clock} in C++ and the \lstinline{time.perf_counter} in Python before and after the simulation loop; and used CUDA's own event timing system~\citep[Section~3.2.6.7]{NVIDIACorporation2018} to record the time taken by the neuron and synapse kernels.
 As one might predict, the Jetson Xavier NX is slower than the three desktop GPUs but, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce cards and Titan RTX respectively, it still performs impressively.
 The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
 Interestingly, when simulating \emph{this} model, the larger L1 cache and architectural improvements present in the Turing-based GTX 1650 do not result in significantly improved performance over the Pascal-based GTX 1050Ti.
@@ -658,7 +658,7 @@ Furthermore, due to the additional synchronisation overheads caused by the Windo
 
 The difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}).
 However, as figure~\ref{fig:compare_overhead} illustrates, for individual timesteps the excess time due to overheads is approximately the same for both models and consistent with the cost of a small number of Python to C++ function calls~\citep{Crail2019}.
-Depending on the size and complexity of the model as well as the hardware used, this overhead may or may not be important.\todo{not really sure whether significant is what we want to say here}
+Depending on the size and complexity of the model as well as the hardware used, this overhead may or may not be important.
 For example, when simulating the microcircuit model for \SI{1}{\second} on the Titan RTX, the overhead of using Python is less than \SI{0.2}{\percent} but, when simulating the Pavlovian conditioning model on the same device, the overhead of using Python is almost \SI{31}{\percent}.
 
 \section{Discussion}
@@ -682,15 +682,8 @@ In the Computational Neuroscience and Neuromorphic computing communities, we can
 Furthermore, for the burgeoning spike-based machine learning community, we can use PyGeNN as the basis for a spike-based machine learning framework akin to TensorFlow or PyTorch for rate-based models.
 A prototype interface of this sort called mlGeNN is in development and close to release.
 
-Finally, in this work we have introduced a new spike recording system for GeNN and have shown that, using this system, we can now simulate the Potjans microcircuit~\citep{Potjans2012} model faster than real-time, which thus far was only possible on the large SpiNNaker neuromorphic supercomputer~\citep{Rhodes2019}.
-
-\begin{itemize}
-  \item do we need to discuss the wide variety of uses, i.e. MC versus Pavlovian demonstrated in this paper?
-    \item Turing architecture is great for GeNN! Presented results improve on state-of-the-art.
-    \item PyGeNN as an intermediate layer - PyNN, ML
-    \item Cost of C++ - Python calls in models
-    \item something about neuromorphic systems often being real-time / BS accelerated time
-\end{itemize}
+In this work we have introduced a new spike recording system for GeNN and have shown that, using this system, we can now simulate the Potjans microcircuit~model~\citep{Potjans2012} faster than real-time and, to the best of our knowledge, faster than any other systems.
+Finally, the excellent performance we have demonstrated using low-end Turing architecture GPUs is very exciting in terms of increasing the accessibility of GPU accelerated computational neuroscience research.
 
 \section*{Conflict of Interest Statement}
 The authors declare that the research was conducted in the absence of any commercial or financial relationships that could be construed as a potential conflict of interest.
@@ -707,7 +700,8 @@ This work was funded by the EPSRC (Brains on Board project, grant number EP/P006
 European Union’s Horizon 2020 research and innovation program under Grant Agreement 945539 (HBP SGA3) and a Google Summer of Code grant to AK .
 
 \section*{Acknowledgments}
-This is a short text to acknowledge the contributions of specific colleagues, institutions, or agencies that aided the efforts of the authors.
+We would like to thank Malin Sandstr\"{o}m and everyone else at the International Neuroinformatics Coordinating Facility~(INCF) for their hard work running the Google Summer of Code mentoring organisation every year.
+Without them, this and many other exciting Neuroinformatics projects would not be possible.
 
 \section*{Data Availability Statement}
 All models, data and analysis scripts used for this study can be found in \url{https://github.com/BrainsOnBoard/pygenn_paper}.
