@@ -131,6 +131,9 @@ def get_params(size_scale_factor=1, build_model=True,
         # Use GeNN's built in spike recording system
         "use_genn_recording": use_genn_recording,
 
+        # Use zero copy for recording
+        "use_zero_copy": False,
+        
         # Simulation duration
         "duration_ms": 60.0 * 60.0 * 1000.0,
 
@@ -249,7 +252,12 @@ def build_model(name, params, reward_timesteps):
                                         exc_params, exc_init)
     i_pop = model.add_neuron_population("I", params["num_inhibitory"], "Izhikevich", 
                                         inh_params, inh_init)
-
+    
+    # Turn on zero-copy for spikes if required
+    if params["use_zero_copy"]:
+        e_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY)
+        i_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY)
+    
     # Set dopamine timestep bitmask
     e_pop.set_extra_global_param("rewardTimesteps", reward_timesteps)
 
