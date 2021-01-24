@@ -106,7 +106,10 @@ e_curr_pop = model.add_current_source("ECurr", stim_noise_model, "E",
                                       curr_source_params, curr_source_init)
 i_curr_pop = model.add_current_source("ICurr", stim_noise_model, "I", 
                                       curr_source_params, curr_source_init)
-
+if params["use_zero_copy"]:
+        e_curr_pop.pop.set_var_location("iExt", genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY)
+        i_curr_pop.pop.set_var_location("iExt", genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY)
+    
 if params["build_model"]:
     print("Building model")
     model.build()
