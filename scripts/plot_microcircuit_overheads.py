@@ -58,7 +58,7 @@ axis.axhline(1000.0, color="black", linestyle="--")
 
 # Add device labels
 for x, t in zip(group_x, devices):
-    axis.text(x, -7500 if plot_settings.presentation else -6500.0, t, ha="center",
+    axis.text(x, -7500 if plot_settings.presentation else -6000.0, t, ha="center",
               fontsize=15 if plot_settings.presentation else 10)
 
 # Configure axis

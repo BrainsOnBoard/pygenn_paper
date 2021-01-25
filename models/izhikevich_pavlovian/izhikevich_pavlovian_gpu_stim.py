@@ -42,8 +42,8 @@ stim_noise_model = genn_model.create_custom_current_source_class(
 # Stimuli generation
 # ----------------------------------------------------------------------------
 # Get standard model parameters
-params = get_params(build_model=True, measure_timing=False, use_genn_recording=True)
-
+params = get_params(build_model=False, measure_timing=False, use_genn_recording=True)
+params["seed"] = 1234
 if "seed" in params:
 	np.random.seed(params["seed"])
 
@@ -168,7 +168,7 @@ end_inh_spikes = None if params["use_genn_recording"] else []
 while model.t < params["duration_ms"]:
     # Simulation
     model.step_time()
-    
+    """
     if params["use_genn_recording"]:
         # If we've just finished simulating the initial recording interval
         if model.timestep == params["record_time_timestep"]:
@@ -195,7 +195,7 @@ while model.t < params["duration_ms"]:
             i_pop.pull_current_spikes_from_device()
             end_exc_spikes.append(np.copy(e_pop.current_spikes))
             end_inh_spikes.append(np.copy(i_pop.current_spikes))
-
+    """
 sim_end_time =  perf_counter()
 print("Simulation time: %fms" % ((sim_end_time - sim_start_time) * 1000.0))
 

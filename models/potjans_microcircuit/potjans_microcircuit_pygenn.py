@@ -5,7 +5,7 @@ from pygenn import genn_model, genn_wrapper
 from scipy.stats import norm
 from six import iteritems, itervalues
 from time import perf_counter
-
+import sys
 # ----------------------------------------------------------------------------
 # Parameters
 # ----------------------------------------------------------------------------
@@ -28,13 +28,13 @@ MEASURE_TIMING = True
 PROCEDURAL_CONNECTIVITY = False
 
 # Should we rebuild the model rather than loading previous version
-BUILD_MODEL = True
+BUILD_MODEL = False
 
 # Should we use zero-copy for legacy spike recording?
 ZERO_COPY = False
 
 # Should we use GeNN's built-in recording system
-USE_GENN_RECORDING = False
+USE_GENN_RECORDING = True
 
 # How many threads to use per spike for procedural connectivity?
 NUM_THREADS_PER_SPIKE = 8
@@ -349,7 +349,7 @@ if USE_GENN_RECORDING:
 
 print("Timing:")
 print("\tSimulation:%f" % ((sim_end_time - sim_start_time) * 1000.0))
-
+sys.exit(0)
 if MEASURE_TIMING:
     print("\tInit:%f" % (1000.0 * model.init_time))
     print("\tSparse init:%f" % (1000.0 * model.init_sparse_time))

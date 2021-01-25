@@ -5,54 +5,42 @@ import seaborn as sns
 
 import plot_settings
 
-# Names and algorithms - could extract them from CSV but it's a ball-ache
-uc_devices = ["GeForce\nGTX 1650\nLinux", "Jetson\nXavier NX\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
-uc_algorithms = ["Python", "C++", "Python recording", "C++ recording"]
+# Names of devices
+devices = ["GeForce\nGTX 1650\nLinux", "Jetson\nXavier NX\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
 
 # Import data
 # **NOTE** np.loadtxt doesn't handle empty entries
-uc_data = np.genfromtxt("microcircuit_overheads.csv", delimiter=",", skip_header=1)
-assert uc_data.shape[0] == (len(uc_devices) * len(uc_algorithms))
-
-# Names and algorithms - could extract them from CSV but it's a ball-ache
-izk_devices = ["GeForce\nGTX 1650\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
-izk_algorithms = ["Python", "Python: GPU stim", "Python: recording",
-                         "Python: GPU stim & recording", "C++: GPU stim & recording", ]
-
-# Import data
-# **NOTE** np.loadtxt doesn't handle empty entries
-izk_data = np.genfromtxt("izhikevich.csv", delimiter=",", skip_header=1)
-assert izk_data.shape[0] == (len(izk_devices) * len(izk_algorithms))
-
-izk_cpp_row = 4
-izk_python_row = 3
-izk_time_column = 4
-
-uc_cpp_row = 3
-uc_python_row = 2
-uc_time_column = 3
+data = np.genfromtxt("compare_overheads.csv", delimiter=",", skip_header=1)
+assert data.shape[0] == len(devices)
 
 uc_timesteps = 1000.0 / 0.1
 izk_timesteps = 60.0 * 60.0 * 1000.0
+num_repeats = 5
 
+# Extract times
+times = data[:,1:21]
 
-uc_python_overhead = {d: (uc_data[(i * len(uc_algorithms)) + uc_python_row,uc_time_column] 
-                          - uc_data[(i * len(uc_algorithms)) + uc_cpp_row,uc_time_column]) * 1000.0 / uc_timesteps
-                      for i, d in enumerate(uc_devices)}
+# Split data into seperate matrices for each experiment
+experiment_data = [times[:,list(range(i, num_repeats * 4, 4))] 
+                   for i in range(4)]
 
-izk_python_overhead = {d: (izk_data[(i * len(izk_algorithms)) + izk_python_row,izk_time_column] 
-                           - izk_data[(i * len(izk_algorithms)) + izk_cpp_row,izk_time_column]) * 1000.0 / izk_timesteps
-                       for i, d in enumerate(izk_devices)}
+# Convert all data into microseconds
+experiment_data[0] *= 1E6
+experiment_data[1] *= 1E3
+experiment_data[2] *= 1E6
+experiment_data[3] *= 1E3
 
-# Build list of all devices
-devices = list(set(iterkeys(uc_python_overhead)).union(set(iterkeys(izk_python_overhead))))
+# Divide by numbers of timesteps
+experiment_data[0] /= uc_timesteps
+experiment_data[1] /= uc_timesteps
+experiment_data[2] /= izk_timesteps
+experiment_data[3] /= izk_timesteps
 
-# Use them to build complete lists of overheads with zeros where there is no data
-uc_python_overhead = [uc_python_overhead[d] if d in uc_python_overhead else 0.0
-                      for d in devices]
-izk_python_overhead = [izk_python_overhead[d] if d in izk_python_overhead else 0.0
-                       for d in devices]
-                      
+# Calculate mean across all repeates
+experiment_mean = np.vstack([np.mean(e, axis=1) for e in experiment_data])
+
+experiment_differences = np.vstack((experiment_mean[1,:] - experiment_mean[0,:],
+                                    experiment_mean[3,:] - experiment_mean[2,:]))
 
 group_size = 2
 num_groups = len(devices)
@@ -81,8 +69,8 @@ for d in range(0, num_bars, group_size):
     start = end + group_pad
 
 pal = sns.color_palette("deep")
-uc_bars = axis.bar(bar_x[0::group_size], uc_python_overhead, bar_width, color=pal[0], linewidth=0)
-izk_bars = axis.bar(bar_x[1::group_size], izk_python_overhead, bar_width, color=pal[1], linewidth=0)
+uc_bars = axis.bar(bar_x[0::group_size], experiment_differences[0], bar_width, color=pal[0], linewidth=0)
+izk_bars = axis.bar(bar_x[1::group_size], experiment_differences[1], bar_width, color=pal[1], linewidth=0)
 
 # Configure axis
 axis.set_xticks(group_x)
@@ -97,7 +85,8 @@ axis.xaxis.grid(False)
 fig.legend([uc_bars, izk_bars], ["Microcircuit", "Pavlovian conditioning"], ncol=2,
            frameon=False, loc="lower center")
 
-plt.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
+plt.tight_layout(pad=0, rect=[0.0, 0.1, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/compare_overhead.pdf")
+
 plt.show()

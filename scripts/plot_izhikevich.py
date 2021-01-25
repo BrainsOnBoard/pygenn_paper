@@ -7,7 +7,7 @@ from itertools import chain, groupby
 from six import iterkeys, itervalues
 
 # Names and algorithms - could extract them from CSV but it's a ball-ache
-devices = ["GeForce\nGTX 1650\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
+devices = ["GeForce\nGTX 1650\nLinux", "Jetson\nXavier NX\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
 algorithms = ["Python", "Python: GPU stim", "Python: recording",
               "Python: GPU stim & recording", "C++: GPU stim & recording", ]
 
