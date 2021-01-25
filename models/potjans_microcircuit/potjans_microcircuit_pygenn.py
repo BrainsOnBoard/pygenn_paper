@@ -199,6 +199,8 @@ for layer in LAYER_NAMES:
 
         # Enable spike recording
         neuron_pop.spike_recording_enabled = USE_GENN_RECORDING
+        if not USE_GENN_RECORDING:
+            neuron_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY)
 
         print("\tPopulation %s: num neurons:%u, external input rate:%f, external weight:%f, external DC offset:%f" % (pop_name, pop_size, ext_input_rate, ext_weight, ext_input_current))
 
@@ -323,8 +325,8 @@ while model.t < DURATION_MS:
     model.step_time()
 
     # Indicate every 10%
-    if (model.timestep % ten_percent_timestep) == 0:
-        print("%u%%" % (model.timestep / 100))
+    #if (model.timestep % ten_percent_timestep) == 0:
+    #    print("%u%%" % (model.timestep / 100))
 
     if not USE_GENN_RECORDING:
         for i, spikes in enumerate(pop_spikes):
