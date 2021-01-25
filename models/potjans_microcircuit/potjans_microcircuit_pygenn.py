@@ -30,8 +30,11 @@ PROCEDURAL_CONNECTIVITY = False
 # Should we rebuild the model rather than loading previous version
 BUILD_MODEL = True
 
+# Should we use zero-copy for legacy spike recording?
+ZERO_COPY = False
+
 # Should we use GeNN's built-in recording system
-USE_GENN_RECORDING = True
+USE_GENN_RECORDING = False
 
 # How many threads to use per spike for procedural connectivity?
 NUM_THREADS_PER_SPIKE = 8
@@ -200,7 +203,8 @@ for layer in LAYER_NAMES:
         # Enable spike recording
         neuron_pop.spike_recording_enabled = USE_GENN_RECORDING
         if not USE_GENN_RECORDING:
-            neuron_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY)
+            neuron_pop.pop.set_spike_location(genn_wrapper.VarLocation_HOST_DEVICE_ZERO_COPY if ZERO_COPY 
+                                              else genn_wrapper.VarLocation_HOST_DEVICE)
 
         print("\tPopulation %s: num neurons:%u, external input rate:%f, external weight:%f, external DC offset:%f" % (pop_name, pop_size, ext_input_rate, ext_weight, ext_input_current))
 
