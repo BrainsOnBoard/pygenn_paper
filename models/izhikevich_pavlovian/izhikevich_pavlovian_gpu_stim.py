@@ -44,6 +44,9 @@ stim_noise_model = genn_model.create_custom_current_source_class(
 # Get standard model parameters
 params = get_params(build_model=True, measure_timing=False, use_genn_recording=True)
 
+if "seed" in params:
+	np.random.seed(params["seed"])
+
 # Generate stimuli sets of neuron IDs
 num_cells = params["num_excitatory"] + params["num_inhibitory"]
 stim_gen_start_time =  perf_counter()
@@ -65,6 +68,7 @@ total_num_inh_stimuli = 0
 reward_timesteps = np.zeros((params["duration_timestep"] + 31) // 32, dtype=np.uint32)
 
 # Loop while stimuli are within simulation duration
+
 next_stimuli_timestep = np.random.randint(params["min_inter_stimuli_interval_timestep"],
                                           params["max_inter_stimuli_interval_timestep"])
 while next_stimuli_timestep < params["duration_timestep"]:

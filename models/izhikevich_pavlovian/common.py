@@ -218,6 +218,9 @@ def build_model(name, params, reward_timesteps):
     model.dT = params["timestep_ms"]
     model._model.set_merge_postsynaptic_models(True)
     model._model.set_default_narrow_sparse_ind_enabled(True)
+
+    if "seed" in params:
+        model._model.set_seed(params["seed"])
     model.timing_enabled = params["measure_timing"]
 
     # Excitatory model parameters
