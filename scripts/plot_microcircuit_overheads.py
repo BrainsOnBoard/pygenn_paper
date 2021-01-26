@@ -6,20 +6,30 @@ import plot_settings
 from itertools import chain, groupby
 from six import iterkeys, itervalues
 
+def autolabel(axis, rects, labels):
+    for rect, label in zip(rects, labels):
+        axis.annotate(label,
+                      xy=(rect.get_x() + rect.get_width() / 2, rect.get_y() + rect.get_height()),
+                      xytext=(0, 3),
+                      textcoords="offset points",
+                      ha="center", va="bottom", rotation=90)
+                    
 # Names and algorithms - could extract them from CSV but it's a ball-ache
 devices = ["GeForce\nGTX 1650", "Jetson\nXavier NX", "Titan\nRTX", "Geforce\nGTX 1050 Ti"]
-algorithms = ["Python", "C++", "Python recording", "C++ recording"]
+
+languages = ["Python", "C++"]
+recording_method = ["CPU", "GPU"]
 
 # Import data
 # **NOTE** np.loadtxt doesn't handle empty entries
 data = np.genfromtxt("microcircuit_overheads.csv", delimiter=",", skip_header=1)
-assert data.shape[0] == (len(devices) * len(algorithms))
+assert data.shape[0] == (len(devices) * len(languages) * len(recording_method))
 
 # List of time columns and associated legend text
 time_columns = [6, 7, 8]
 time_labels = ["Neuron simulation", "Synapse simulation", "Overhead"]
 
-group_size = len(algorithms)
+group_size = len(languages) * len(recording_method)
 num_groups = len(devices)
 num_bars = group_size * num_groups
 bar_x = np.empty(num_bars)
@@ -33,7 +43,7 @@ start = 0.0
 
 # Create figure
 fig, axis = plt.subplots(figsize=(plot_settings.column_width, 
-                                  90.0 * plot_settings.mm_to_inches))
+                                  95.0 * plot_settings.mm_to_inches))
 
 # Loop through each group (device) of bars
 group_x = []
@@ -52,19 +62,28 @@ for i, t in enumerate(time_columns):
     bars = axis.bar(bar_x, data[:,t], bar_width, bar_offset, color=pal[i], linewidth=0)
     legend_actors.append(bars[0])
     bar_offset += data[:,t]
+    
+    if i == 2:
+        autolabel(axis, bars, languages * len(recording_method) * num_groups)
 
 # Add real-time line
 axis.axhline(1000.0, color="black", linestyle="--")
 
 # Add device labels
 for x, t in zip(group_x, devices):
-    axis.text(x, -7500 if plot_settings.presentation else -6000.0, t, ha="center",
-              fontsize=15 if plot_settings.presentation else 10)
+    axis.text(x, -7500 if plot_settings.presentation else -3200.0, t, ha="center",
+              fontsize=15 if plot_settings.presentation else 9)
+
+# Get x coordinate of middle of each recording method
+recording_method_x = np.reshape(bar_x, (8, 2))
+recording_method_x = np.average(recording_method_x, axis=1)
 
 # Configure axis
-axis.set_xticks(bar_x)
-axis.set_xticklabels(algorithms * num_groups, rotation="vertical", ha="center")
+axis.set_xticks(recording_method_x)
+axis.set_xticklabels(recording_method * num_groups)
+axis.set_xlabel("Recording method")
 axis.set_ylabel("Simulation time [ms]")
+axis.set_ylim((0, 12000))
 
 # Remove axis junk
 sns.despine(ax=axis)
@@ -74,7 +93,7 @@ axis.xaxis.grid(False)
 fig.legend(legend_actors, time_labels, ncol=2 if plot_settings.presentation else len(time_labels),
            frameon=False, loc="lower center")
 
-plt.tight_layout(pad=0)
+plt.tight_layout(pad=0, rect=[0.0, 0.075, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/microcircuit_overheads.pdf")
 plt.show()
