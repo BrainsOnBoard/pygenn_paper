@@ -625,7 +625,7 @@ Furthermore, on the high-end desktop GPU, the simulation now runs faster than re
         \includegraphics{figures/izhikevich.pdf}
     \end{center}
     \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} of biological time.
-    `GPU stim' indicates simulations using the GPU stimulus delivery model and `recording' indicates simulations where the new recording system is employed.}
+    `GPU stim' indicates simulations using the GPU stimulus delivery model and `GPU recording' indicates simulations where the new recording system is employed.}
     \label{fig:izhikevich}
 \end{figure}
 %
@@ -639,7 +639,7 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
         \includegraphics{figures/compare_overhead.pdf}
     \end{center}
     \caption{Comparison of the duration of individual timestep in Python and C++ simulation in microcircuit and Pavlovian conditioning experiments.
-    Times are taken from the fastest version of each model i.e. the microcircuit using the recording system and the Pavlovian conditioning model using the recording system and the GPU stimulus delivery.}
+    Times are taken from averages calculated over 5 runs of the fastest version of each model i.e. the microcircuit using the GPU recording system and the Pavlovian conditioning model using the GPU recording system and the GPU stimulus delivery.}
     \label{fig:compare_overhead}
 \end{figure}
 
