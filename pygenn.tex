@@ -404,7 +404,6 @@ izhikevich_stdp_model = create_custom_weight_update_class(
 \end{lstlisting}
 %
 We then instruct GeNN to record the times of current and previous pre and postsynaptic spikes.
-\todo{improve sentence}
 The current spike time will equal the current time if a spike of this sort is being processed in the current timestep whereas the previous spike time only tracks spikes which have occurred \emph{before} the current timestep:
 %
 \begin{lstlisting}[morekeywords={True}]
@@ -643,19 +642,22 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
     \label{fig:compare_overhead}
 \end{figure}
 
-In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on a selection of desktop GPUs using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
+In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
 These PyGeNN results are compared to a C++ simulation using both optimizations.
 Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
+Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system still significantly improves the overall performance on all devices -- especially on the Jetson Xavier NX with its slower CPU.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
 This is because, as discussed previously, this model is simply not large enough to fill the \num{4608} CUDA cores present on the Titan RTX.
 Therefore, as the two GPUs share the same Turing architecture and have very similar clock speeds (\SIrange{1350}{1770}{\mega\hertz} for the Titan RTX and \SIrange{1485}{1665}{\mega\hertz} for the GTX 1650), the two GPUs perform very similarly.
-Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system on these two systems still significantly improves the overall performance whereas, delivering stimuli on the GPU only provides a minimal improvement.
-However, unlike in the simulations of the microcircuit model, here the GTX 1050 Ti performs rather differently. 
+Similarly to the simulations of the microcircuit model, the Jetson Xavier NX performs rather slower than the desktop GPUs but still achieves speedups of up to $31\times$.
+
+Interestingly, unlike in the simulations of the microcircuit model, here the GTX 1050 Ti performs rather differently. 
 Although the clock speed of this device is approximately the same as the other GPUs (\SIrange{1290}{1392}{\mega\hertz}) and it has a similar number of CUDA cores to the GTX 1650, its performance is significantly worse.
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
 Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs as well as significantly larger L1 caches.
 As discussed in our previous work~\citep{Knight2018}, these architectural features are particularly beneficial for SNN simulations with STDP where a large amount of floating point computation is required to update the synaptic state \emph{and} additional integer arithmetic is required to calculate the indices into the sparse matrix data structures.
 Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimulus delivery to the GPU improves the performance significantly on the Windows machine.
+However, on the other devices, it only provides a minimal improvement.
 
 The difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}).
 However, as figure~\ref{fig:compare_overhead} illustrates, for individual timesteps the excess time due to overheads is approximately the same for both models and consistent with the cost of a small number of Python to C++ function calls~\citep{Crail2019}.
