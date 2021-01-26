@@ -10,7 +10,7 @@ def autolabel(axis, rects, labels):
     for rect, label in zip(rects, labels):
         axis.annotate(label,
                       xy=(rect.get_x() + rect.get_width() / 2, rect.get_y() + rect.get_height()),
-                      xytext=(0, 3),
+                      xytext=(0, 6),
                       textcoords="offset points",
                       ha="center", va="bottom", rotation=90)
                     
