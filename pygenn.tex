@@ -81,7 +81,7 @@ NEST~\citep{Gewaltig2007} is widely used for large-scale point neuron simulation
 For performance reasons, many of these simulators are written in C++ and, especially amongst the older simulators, users describe their models either using a Domain-Specific Language~(DSL) or directly in C++.
 For programming language purists, a DSL may be an elegant way of describing an SNN network model and, for simulator developers, not having to add bindings to another language is convenient.
 However, both choices act as a barrier to potential users.
-Therefore, with both the computational neuroscience and machine learning communities gradually coalescing towards a Python-based ecosystem with a wealth of mature libraries for scientific computing~\citep{Hunter2007,VanDerWalt2011,Millman2011}, exposing spiking neural network simulators to Python seems a pragmatic choice.
+Therefore, with both the computational neuroscience and machine learning communities gradually coalescing towards a Python-based ecosystem with a wealth of mature libraries for scientific computing~\citep{Hunter2007,VanDerWalt2011,Millman2011}, exposing spiking neural network simulators to Python seems like a pragmatic choice.
 NEST~\citep{Eppler2009}, NEURON~\citep{Hines2009} and CARLsim~\citep{Balaji2020} have all taken this route and now all offer Python interfaces.
 Furthermore, newer simulators such as Arbor and Brian2~\citep{Stimberg2019} have been designed from the ground up with a Python interface.
 
@@ -102,7 +102,7 @@ Using the facilities provided by PyGeNN, we show that both scenarios can be simu
 \subsection{GeNN}
 \label{sec:methods/genn}
 GeNN~\citep{Yavuz2016} is a library for generating CUDA~\citep{CUDA2020} code for the simulation of spiking neural network models.
-GeNN handles much of the complexity of using CUDA directly and automatically performs device-specific optimizations so as to to maximize performance.
+GeNN handles much of the complexity of using CUDA directly and automatically performs device-specific optimizations so as to maximize performance.
 GeNN consists of a main library -- implementing the API used to define models as well as the generic parts of the code generator -- and an additional library for each backend (currently there is a reference C++ backend for generating CPU code and a CUDA backend. An OpenCL backend is under development).
 Users describe their model by implementing a \lstinline{modelDefinition} function within a C++ file. For example, a model consisting of 4 Izhikevich neurons with heterogeneous parameters, driven by a constant input current might be defined as follows:
 %
@@ -125,7 +125,7 @@ void modelDefinition(ModelSpec &model)
 \end{lstlisting}
 %
 The \emph{genn-buildmodel} command line tool is then used to compile this file; link it against the main GeNN library and the desired backend library; and finally run the resultant executable to generate the source code required to build a simulation dynamic library (a .dll file on Windows or a .so file on Linux and Mac).
-This dynamic library can then either be statically linked against a simulation loop provided by the user or dynamically loaded by the user's simulation code.
+This dynamic library can then either be linked against a simulation loop provided by the user or dynamically loaded by the user's simulation code.
 To demonstrate this latter approach, the following example uses the \lstinline{SharedLibraryModel} helper class supplied with GeNN to dynamically load the previously defined model, initialise the heterogenous neuron parameters and print each neuron's membrane voltage every timestep: 
 %
 \begin{lstlisting}[language=C++]
@@ -314,7 +314,7 @@ The Poisson input is delivered to each neuron via $I_{\text{ext}_{i}}$ with
 \end{align}
 %
 where $\nu_{\text{ext}}$ represents the mean input rate and $w_{\text{ext}}$ represents the weight.
-The ordinary differential Eq.~\ref{eq:lif_neuron},~(\ref{eq:exp_neuron_input_current})~and~(\ref{eq:poisson_input_current}) are solved with an exponential Euler algorithm.
+The ordinary differential Eq.~\ref{eq:lif_neuron},~\ref{eq:exp_neuron_input_current}~and~\ref{eq:poisson_input_current} are solved with an exponential Euler algorithm.
 For a full description of the model parameters, please refer to \citet[tables 4 and 5]{Potjans2012} and for a description of the strategies used by GeNN to parallelise the initialisation and subsequent simulation of this network, please refer to \citet[section 2.3]{Knight2018}.
 This model requires simulation using a relatively small timestep of \SI{0.1}{\milli\second}, making the overheads of copying spikes from the GPU every timestep particularly problematic.
 %
@@ -536,7 +536,7 @@ curr_ext_view[stimuli_input_set] = 40.0
 curr_pop.push_var_to_device("iExt")
 \end{lstlisting}
 The same approach can then be used to zero the current afterwards.
-However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, we can offload the stimulus delivery entirely to the GPU in order to reduce potential overheads, using the following slightly more complex model:
+However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, we can alternatively offload the stimulus delivery entirely to the GPU in order to reduce potential overheads, using the following slightly more complex model:
 
 \begin{lstlisting}[language=python]
 stim_noise_model = create_custom_current_source_class(
@@ -681,11 +681,11 @@ This allows for the same codes to be used in large-scale brain simulations and e
 Supporting the popular Python language in this interface makes this ecosystem available to a wider audience of researchers in both Computational Neuroscience, bio-mimetic machine learning and autonomous robotics.
 
 The new interface also opens up opportunities to support researchers that work with other Python based systems.
-In the Computational Neuroscience and Neuromorphic computing communities, we can now build a PyNN~\citep{Davison2008} interface on top of PyGeNN and, infact, a prototype of such an interface is in development.
+In the Computational Neuroscience and Neuromorphic computing communities, we can now build a PyNN~\citep{Davison2008} interface on top of PyGeNN and, in fact, a prototype of such an interface is in development.
 Furthermore, for the burgeoning spike-based machine learning community, we can use PyGeNN as the basis for a spike-based machine learning framework akin to TensorFlow or PyTorch for rate-based models.
 A prototype interface of this sort called mlGeNN is in development and close to release.
 
-In this work we have introduced a new spike recording system for GeNN and have shown that, using this system, we can now simulate the Potjans microcircuit~model~\citep{Potjans2012} faster than real-time and, to the best of our knowledge, faster than any other systems.
+In this work we have introduced a new spike recording system for GeNN and have shown that, using this system, we can now simulate the Potjans microcircuit~model~\citep{Potjans2012} faster than real-time and, to the best of our knowledge, faster than any other system.
 Finally, the excellent performance we have demonstrated using low-end Turing architecture GPUs is very exciting in terms of increasing the accessibility of GPU accelerated Computational Neuroscience and SNN machine learning research.
 
 \section*{Conflict of Interest Statement}
