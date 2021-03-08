@@ -617,7 +617,7 @@ When small -- in this case \SI{0.1}{\milli\second} -- simulation timesteps are u
 However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and overheads are reduced by up to 10$\times$.
 Because synchronisation with the CPU is no longer required every timestep, simulations run approximately twice as fast on the Windows machine.
 %Intriguingly, the overhead is now identical between Python and C++.
-Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- significantly faster than other recently published GPU simulators~\citep{Golosio2020} and even specialised neuromorphic systems~\citep{Rhodes2019}.
+Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- significantly faster than other recently published GPU simulators~\citep{Golosio2021} and even specialised neuromorphic systems~\citep{Rhodes2019}.
 %
 \begin{figure}[t!]
     \begin{center}
@@ -708,6 +708,7 @@ Without them, this and many other exciting Neuroinformatics projects would not b
 
 \section*{Data Availability Statement}
 All models, data and analysis scripts used for this study can be found in \url{https://github.com/BrainsOnBoard/pygenn_paper}.
+All experiments were carried out using the GeNN 4.4.0 which is available from \url{https://doi.org/10.5281/zenodo.4419159}.
 % Please see the availability of data guidelines for more information, at https://www.frontiersin.org/about/author-guidelines#AvailabilityofData
 
 \bibliographystyle{frontiersinSCNS_ENG_HUMS} % for Science, Engineering and Humanities and Social Sciences articles, for Humanities and Social Sciences articles please include page numbers in the in-text citations
