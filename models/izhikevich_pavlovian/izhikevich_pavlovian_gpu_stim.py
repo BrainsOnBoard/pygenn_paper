@@ -45,7 +45,7 @@ stim_noise_model = genn_model.create_custom_current_source_class(
 params = get_params(build_model=False, measure_timing=False, use_genn_recording=True)
 params["seed"] = 1234
 if "seed" in params:
-	np.random.seed(params["seed"])
+    np.random.seed(params["seed"])
 
 # Generate stimuli sets of neuron IDs
 num_cells = params["num_excitatory"] + params["num_inhibitory"]
@@ -74,38 +74,38 @@ next_stimuli_timestep = np.random.randint(params["min_inter_stimuli_interval_tim
 while next_stimuli_timestep < params["duration_timestep"]:
     # Pick a stimuli set to present at this timestep
     stimuli_set = np.random.randint(params["num_stimuli_sets"])
-    
+
     # Loop through neurons in stimuli set and add time to list
     for n in input_sets[stimuli_set]:
         neuron_stimuli_times[n].append(next_stimuli_timestep * params["timestep_ms"])
-    
+
     # Count the number of excitatory neurons in input set and add to total
     num_exc_in_input_set = np.sum(input_sets[stimuli_set] < params["num_excitatory"])
     total_num_exc_stimuli += num_exc_in_input_set
     total_num_inh_stimuli += (num_cells - num_exc_in_input_set)
-    
+
     # If we should be recording at this point, add stimuli to list
     if next_stimuli_timestep < params["record_time_timestep"]:
         start_stimulus_times.append((next_stimuli_timestep * params["timestep_ms"], stimuli_set))
     elif next_stimuli_timestep > (params["duration_timestep"] - params["record_time_timestep"]):
         end_stimulus_times.append((next_stimuli_timestep * params["timestep_ms"], stimuli_set))
-    
+
     # If this is the rewarded stimuli
     if stimuli_set == 0:
         # Determine time of next reward
         reward_timestep = next_stimuli_timestep + np.random.randint(params["max_reward_delay_timestep"])
-        
+
         # If this is within simulation
         if reward_timestep < params["duration_timestep"]:
             # Set bit in reward timesteps bitmask
             reward_timesteps[reward_timestep // 32] |= (1 << (reward_timestep % 32))
-            
+
             # If we should be recording at this point, add reward to list
             if reward_timestep < params["record_time_timestep"]:
                 start_reward_times.append(reward_timestep * params["timestep_ms"])
             elif reward_timestep > (params["duration_timestep"] - params["record_time_timestep"]):
                 end_reward_times.append(reward_timestep * params["timestep_ms"])
-        
+
     # Advance to next stimuli
     next_stimuli_timestep += np.random.randint(params["min_inter_stimuli_interval_timestep"],
                                                params["max_inter_stimuli_interval_timestep"])
@@ -168,20 +168,20 @@ end_inh_spikes = None if params["use_genn_recording"] else []
 while model.t < params["duration_ms"]:
     # Simulation
     model.step_time()
-    """
+
     if params["use_genn_recording"]:
         # If we've just finished simulating the initial recording interval
         if model.timestep == params["record_time_timestep"]:
             # Download recording data
             model.pull_recording_buffers_from_device()
-            
+
             start_exc_spikes = e_pop.spike_recording_data
             start_inh_spikes = i_pop.spike_recording_data
         # Otherwise, if we've finished entire simulation
         elif model.timestep == params["duration_timestep"]:
             # Download recording data
             model.pull_recording_buffers_from_device()
-            
+
             end_exc_spikes = e_pop.spike_recording_data
             end_inh_spikes = i_pop.spike_recording_data
     else:
@@ -195,14 +195,14 @@ while model.t < params["duration_ms"]:
             i_pop.pull_current_spikes_from_device()
             end_exc_spikes.append(np.copy(e_pop.current_spikes))
             end_inh_spikes.append(np.copy(i_pop.current_spikes))
-    """
+
 sim_end_time =  perf_counter()
 print("Simulation time: %fms" % ((sim_end_time - sim_start_time) * 1000.0))
 
 if not params["use_genn_recording"]:
     start_timesteps = np.arange(0.0, params["record_time_ms"], params["timestep_ms"])
     end_timesteps = np.arange(params["duration_ms"] - params["record_time_ms"], params["duration_ms"], params["timestep_ms"])
-    
+
     start_exc_spikes = convert_spikes(start_exc_spikes, start_timesteps)
     start_inh_spikes = convert_spikes(start_inh_spikes, start_timesteps)
     end_exc_spikes = convert_spikes(end_exc_spikes, end_timesteps)

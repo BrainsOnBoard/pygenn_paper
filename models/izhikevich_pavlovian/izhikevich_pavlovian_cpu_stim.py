@@ -25,7 +25,10 @@ stim_noise_model = genn_model.create_custom_current_source_class(
 # Stimuli generation
 # ----------------------------------------------------------------------------
 # Get standard model parameters
-params = get_params(build_model=True, measure_timing=False, use_genn_recording=True)
+params = get_params(build_model=True, measure_timing=False, use_genn_recording=False)
+params["seed"]=1234
+if "seed" in params:
+    np.random.seed(params["seed"])
 
 # Generate stimuli sets of neuron IDs
 num_cells = params["num_excitatory"] + params["num_inhibitory"]
