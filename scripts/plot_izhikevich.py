@@ -16,9 +16,12 @@ algorithms = ["Python", "Python: GPU stim", "Python: GPU recording",
 data = np.genfromtxt("izhikevich.csv", delimiter=",", skip_header=1)
 assert data.shape[0] == (len(devices) * len(algorithms))
 
-# List of time columns and associated legend text
-time_column = 4
+# Extract times and calculate means and standard deviations
+times = data[:,4:]
+time_mean = np.mean(times, axis=1)
+time_std = np.std(times, axis=1)
 
+# Configure bars
 group_size = len(algorithms)
 num_groups = len(devices)
 num_bars = group_size * num_groups
@@ -48,7 +51,8 @@ for d in range(0, num_bars, group_size):
 pal = sns.color_palette("deep")
 legend_actors = []
 for i, a in enumerate(algorithms):
-    bars = axis.bar(bar_x[i::group_size], data[i::group_size,time_column] / 1000.0, bar_width, color=pal[i], linewidth=0)
+    bars = axis.bar(bar_x[i::group_size], time_mean[i::group_size] / 1000.0, 
+    bar_width, color=pal[i], linewidth=0, yerr=time_std[i::group_size] / 1000.0)
     legend_actors.append(bars[0])
 
 # Configure axis
