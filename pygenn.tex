@@ -654,13 +654,13 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
 \end{figure}
 
 In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording}.% and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
-These PyGeNN results are compared to a C++ simulation which also uses the recording system.%using both optimizations.
+These PyGeNN results are compared to a C++ simulation which also uses the recording system. %using both optimizations.
 Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
 Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system still significantly improves the overall performance on all devices -- especially on the Jetson Xavier NX with its slower CPU.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
 This is because, as discussed previously, this model is simply not large enough to fill the \num{4608} CUDA cores present on the Titan RTX.
 Therefore, as the two GPUs share the same Turing architecture and have very similar clock speeds (\SIrange{1350}{1770}{\mega\hertz} for the Titan RTX and \SIrange{1485}{1665}{\mega\hertz} for the GTX 1650), the two GPUs perform very similarly.
-Similarly to the simulations of the microcircuit model, the Jetson Xavier NX performs rather slower than the desktop GPUs but still achieves speedups of up to $31\times$.
+As for the simulations of the microcircuit model, the Jetson Xavier NX performs rather slower than the desktop GPUs but still achieves speedups of up to $31\times$.
 
 Interestingly, unlike in the simulations of the microcircuit model, here the GTX 1050 Ti performs rather differently. 
 Although the clock speed of this device is approximately the same as the other GPUs (\SIrange{1290}{1392}{\mega\hertz}) and it has a similar number of CUDA cores to the GTX 1650, its performance is significantly worse.
