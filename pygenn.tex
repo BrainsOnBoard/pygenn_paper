@@ -542,32 +542,32 @@ curr_ext_view[stimuli_input_set] = 40.0
 curr_pop.push_var_to_device("iExt")
 \end{lstlisting}
 The same approach can then be used to zero the current afterwards.
-However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, we can alternatively offload the stimulus delivery entirely to the GPU in order to reduce potential overheads, using the following slightly more complex model:
+% However, as almost \num{20000} stimuli will be injected over the course of a \SI{1}{\hour} simulation, we can alternatively offload the stimulus delivery entirely to the GPU in order to reduce potential overheads, using the following slightly more complex model:
 
-\begin{lstlisting}[language=python]
-stim_noise_model = create_custom_current_source_class(
-    "stim_noise",
-    param_names=["n", "stimMagnitude"],
-    var_name_types=[("startStim", "unsigned int"), 
-                    ("endStim", "unsigned int", VarAccess_READ_ONLY)],
-    extra_global_params=[("stimTimes", "scalar*")],
-    injection_code=
-        """
-        scalar current = ($(gennrand_uniform) * $(n) * 2.0) - $(n);
-        if($(startStim) != $(endStim) && $(t) >= $(stimTimes)[$(startStim)]) {
-           current += $(stimMagnitude);
-           $(startStim)++;
-        }
-        $(injectCurrent, current);
-        """)
-\end{lstlisting}
-This model retains the same logic for generating background noise but adds a \lstinline{stimTimes} array which contains the times at which each neuron should have current injected.
-This array is an `extra global parameter' -- a read-only memory area that can be allocated and populated from PyGeNN, in this case by `stacking' together a list of lists of spike times:
-\begin{lstlisting}
-curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
-\end{lstlisting}
-The \lstinline{startStim} and \lstinline{endStim} variables are then used to point to the subset of the \lstinline{stimTimes} array corresponding to each neuron.
-Once the simulation time~(\lstinline{$(t)}) passes the time at \lstinline{stimTimes[startStim]}, current is injected and \lstinline{startStim} is advanced.
+% \begin{lstlisting}[language=python]
+% stim_noise_model = create_custom_current_source_class(
+    % "stim_noise",
+    % param_names=["n", "stimMagnitude"],
+    % var_name_types=[("startStim", "unsigned int"), 
+                    % ("endStim", "unsigned int", VarAccess_READ_ONLY)],
+    % extra_global_params=[("stimTimes", "scalar*")],
+    % injection_code=
+        % """
+        % scalar current = ($(gennrand_uniform) * $(n) * 2.0) - $(n);
+        % if($(startStim) != $(endStim) && $(t) >= $(stimTimes)[$(startStim)]) {
+           % current += $(stimMagnitude);
+           % $(startStim)++;
+        % }
+        % $(injectCurrent, current);
+        % """)
+% \end{lstlisting}
+% This model retains the same logic for generating background noise but adds a \lstinline{stimTimes} array which contains the times at which each neuron should have current injected.
+% This array is an `extra global parameter' -- a read-only memory area that can be allocated and populated from PyGeNN, in this case by `stacking' together a list of lists of spike times:
+% \begin{lstlisting}
+% curr_pop.set_extra_global_param("stimTimes", np.hstack(neuron_stimuli_times))
+% \end{lstlisting}
+% The \lstinline{startStim} and \lstinline{endStim} variables are then used to point to the subset of the \lstinline{stimTimes} array corresponding to each neuron.
+% Once the simulation time~(\lstinline{$(t)}) passes the time at \lstinline{stimTimes[startStim]}, current is injected and \lstinline{startStim} is advanced.
 
 %
 \begin{figure}[t!]
@@ -630,7 +630,7 @@ Furthermore, on the high-end desktop GPU, the simulation now runs faster than re
         \includegraphics{figures/izhikevich.eps}
     \end{center}
     \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} of biological time.
-    `GPU stim' indicates simulations using the GPU stimulus delivery model and `GPU recording' indicates simulations where the new recording system is employed.}
+    `GPU recording' indicates simulations where the new recording system is employed.}
     \label{fig:izhikevich}
 \end{figure}
 %
@@ -644,12 +644,12 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
         \includegraphics{figures/compare_overhead.eps}
     \end{center}
     \caption{Comparison of the duration of individual timestep in Python and C++ simulation in microcircuit and Pavlovian conditioning experiments.
-    Times are taken from averages calculated over 5 runs of the fastest version of each model i.e. the microcircuit using the GPU recording system and the Pavlovian conditioning model using the GPU recording system and the GPU stimulus delivery.}
+    Times are taken from averages calculated over 5 runs of the fastest version of each model i.e. the versions using the GPU recording system.}
     \label{fig:compare_overhead}
 \end{figure}
 
-In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording} and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
-These PyGeNN results are compared to a C++ simulation using both optimizations.
+In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording}.% and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
+These PyGeNN results are compared to a C++ simulation which also uses the recording system.%using both optimizations.
 Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
 Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system still significantly improves the overall performance on all devices -- especially on the Jetson Xavier NX with its slower CPU.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
@@ -662,8 +662,8 @@ Although the clock speed of this device is approximately the same as the other G
 The difference in performance across all configurations is likely to be due to architectural differences between the older Pascal; and newer Volta and Turing architectures.
 Specifically, Pascal GPUs have one type of Arithmetic Logic Unit~(ALU) which handles both integer and floating point arithmetic whereas, the newer Volta and Turing architectures have equal numbers of dedicated integer and floating point ALUs as well as significantly larger L1 caches.
 As discussed in our previous work~\citep{Knight2018}, these architectural features are particularly beneficial for SNN simulations with STDP where a large amount of floating point computation is required to update the synaptic state \emph{and} additional integer arithmetic is required to calculate the indices into the sparse matrix data structures.
-Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimulus delivery to the GPU improves the performance significantly on the Windows machine.
-However, on the other devices, it only provides a minimal improvement.
+%Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimulus delivery to the GPU improves the performance significantly on the Windows machine.
+%However, on the other devices, it only provides a minimal improvement.
 
 The difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}).
 However, as figure~\ref{fig:compare_overhead} illustrates, for individual timesteps the excess time due to overheads is approximately the same for both models and consistent with the cost of a small number of Python to C++ function calls~\citep{Crail2019}.
