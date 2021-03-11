@@ -87,6 +87,6 @@ fig.legend([uc_bars, izk_bars], ["Microcircuit", "Pavlovian conditioning"], ncol
 
 plt.tight_layout(pad=0, rect=[0.0, 0.1, 1.0, 1.0])
 if not plot_settings.presentation:
-    fig.savefig("../figures/compare_overhead.pdf")
+    fig.savefig("../figures/compare_overhead.eps")
 
 plt.show()

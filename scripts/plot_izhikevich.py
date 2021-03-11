@@ -66,5 +66,5 @@ fig.legend(legend_actors, algorithms, ncol=2,
 
 plt.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
 if not plot_settings.presentation:
-    fig.savefig("../figures/izhikevich.pdf")
+    fig.savefig("../figures/izhikevich.eps")
 plt.show()

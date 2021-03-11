@@ -95,5 +95,5 @@ fig.legend(legend_actors, time_labels, ncol=2 if plot_settings.presentation else
 
 plt.tight_layout(pad=0, rect=[0.0, 0.075, 1.0, 1.0])
 if not plot_settings.presentation:
-    fig.savefig("../figures/microcircuit_overheads.pdf")
+    fig.savefig("../figures/microcircuit_overheads.eps")
 plt.show()

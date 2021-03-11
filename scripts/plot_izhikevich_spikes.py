@@ -193,6 +193,6 @@ plot_reward(figure, last_second_raster_axis, last_second_rate_axis, reward_times
 plot_stimuli(last_second_raster_axis, stimuli["time"][stimuli_last_second], stimuli["id"][stimuli_last_second])
 
 if not plot_settings.presentation:
-    figure.savefig("../figures/izhikevich_spikes.pdf", dpi=600)
+    figure.savefig("../figures/izhikevich_spikes.eps", dpi=600)
 plt.show()
 
