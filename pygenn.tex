@@ -264,7 +264,7 @@ Finally, the \lstinline{threshold_condition_code} expression defines \emph{when}
 %
 \begin{figure}[t!]
     \begin{center}
-        \includegraphics[width=180mm]{figures/potjans_circuit_v2}
+        \includegraphics[width=180mm]{figures/potjans_circuit_v2.eps}
     \end{center}
     \caption{Illustration of the microcircuit model.
     Blue triangles represent excitatory populations, red circles represent inhibitory populations and the number beneath each symbol shows the number of neurons in each population.
@@ -280,12 +280,16 @@ Internally, GeNN stores the spikes emitted by a neuron population during one sim
 Previously, recording spikes in GeNN was very similar to the recording of voltages shown in the previous example code -- the array of neuron indices was simply copied from the GPU to the CPU every timestep.
 However, especially when simulating models with a small simulation timestep, such frequent synchronization between the CPU and GPU is costly -- especially if a slower, interpreted language such as Python is involved.
 Furthermore, biological neurons typically spike at a low rate (in the cortex, the average firing rate is only around \SI{3}{\hertz}~\citep{Buzsaki2014}) meaning that the amount of spike data transferred every timestep is typically very small.
-To address both of these sources of inefficiency, we have added a new data structure to GeNN which stores spike data for many timesteps on the GPU.
-To reduce the memory required for this data structure and to make its size independent of neural activity, the spikes emitted by a population of $N$ neurons in a single simulation timestep are stored in a $N\si{\bit}$ bitfield where a `1' represents a spike and a `0' the absence of one.
+One solution to these inefficiencies is to store many timesteps worth of spike data  on the GPU and use more infrequent, larger transfers to copy it to the CPU.
+At low firing rates, the most memory efficient solution would be to simply store the indices of neurons which spiked each timestep, for example in a data structure similar to a Yale sparse matrix with each `row' representing a timestep~\todo{cite}.
+However, not only would the efficiency of this approach rely on GeNN \emph{only} being used for models with biologically-plausible firing rates, but the amount of memory required to store the spikes for a given number of timesteps could not be determined ahead of time.
+In a CPU-based simulator, this would not be problematic as additional memory could be allocated as required.
+However, the fine grained global synchronisation this would require would not be easily achievable on a GPU.
+Therefore, we instead represent the spikes emitted by a population of $N$ neurons in a single simulation timestep as a $N\si{\bit}$ bitfield where a `1' represents a spike and a `0' the absence of one.
 Spiking data over multiple timesteps is then represented by a circular buffer of these bitfields.
-Using this approach, even the spiking output of relatively large models, running for many timesteps can be stored in a small amount of memory.
+While at very low firing rates, this approach uses more memory than storing the indices of the neurons which spiked, it still allows the spiking output of relatively large models, running for many timesteps to be stored in a small amount of memory.
 For example, the spiking output of a model with \num{100E3} neurons running for \num{10E3} simulation timesteps, required less than \SI{120}{\mega\byte} -- a small fraction of the memory on a modern GPU.
-While efficiently handling spikes stored in a bitfield is a little trickier than working with a list of neuron indices, GeNN provides an efficient C++ helper function for saving the spikes stored in a bitfield to a text file and a numpy-based method for decoding them in PyGeNN. 
+While efficiently handling spikes stored in a bitfield is a little trickier than working with a list of neuron indices, GeNN provides an efficient C++ helper function for saving the spikes stored in a bitfield to a text file and a numpy-based method for decoding them in PyGeNN.
 
 \subsection{Cortical microcircuit model}
 \label{sec:methods/cortical_microcircuit}
@@ -322,7 +326,7 @@ This model requires simulation using a relatively small timestep of \SI{0.1}{\mi
 %
 \begin{figure}[t!]
     \begin{center}
-        \includegraphics[width=85mm]{figures/circuit2}
+        \includegraphics[width=85mm]{figures/circuit2.eps}
     \end{center}
     \caption{Illustration of the balanced random network model.
     The blue triangle represents the excitatory population, the red circle represents the inhibitory population, and the numbers beneath each symbol show the number of neurons in each population.
@@ -568,7 +572,7 @@ Once the simulation time~(\lstinline{$(t)}) passes the time at \lstinline{stimTi
 %
 \begin{figure}[t!]
     \begin{center}
-        \includegraphics{figures/microcircuit_overheads.pdf}
+        \includegraphics{figures/microcircuit_overheads.eps}
     \end{center}
     \caption{Simulation times of the microcircuit model running on various GPU hardware for \SI{1}{\second} of biological time.
     `Overhead' refers to time spent in simulation loop but not within CUDA kernels.
@@ -578,7 +582,7 @@ Once the simulation time~(\lstinline{$(t)}) passes the time at \lstinline{stimTi
 %
 \begin{figure}[t!]
     \begin{center}
-        \includegraphics{figures/izhikevich_spikes.pdf}
+        \includegraphics{figures/izhikevich_spikes.eps}
     \end{center}
     \caption{Results of Pavlovian conditioning experiment.
              Raster plot and spike density function (SDF)~\citep{Szucs1998a} showing activity centred around first delivery of Conditional Stimulus~(CS) during initial~(A) and final~(B) \SI{50}{\second} of simulation.
@@ -623,7 +627,7 @@ Furthermore, on the high-end desktop GPU, the simulation now runs faster than re
 %
 \begin{figure}[t!]
     \begin{center}
-        \includegraphics{figures/izhikevich.pdf}
+        \includegraphics{figures/izhikevich.eps}
     \end{center}
     \caption{Simulation times of the Pavlovian Conditioning model running on various GPU hardware for \SI{1}{\hour} of biological time.
     `GPU stim' indicates simulations using the GPU stimulus delivery model and `GPU recording' indicates simulations where the new recording system is employed.}
@@ -637,7 +641,7 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
 %
 \begin{figure}[t!]
     \begin{center}
-        \includegraphics{figures/compare_overhead.pdf}
+        \includegraphics{figures/compare_overhead.eps}
     \end{center}
     \caption{Comparison of the duration of individual timestep in Python and C++ simulation in microcircuit and Pavlovian conditioning experiments.
     Times are taken from averages calculated over 5 runs of the fastest version of each model i.e. the microcircuit using the GPU recording system and the Pavlovian conditioning model using the GPU recording system and the GPU stimulus delivery.}
