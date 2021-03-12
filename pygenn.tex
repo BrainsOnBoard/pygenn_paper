@@ -188,6 +188,8 @@ The ability to extend this system to Python was a key requirement of PyGeNN and,
 \begin{lstlisting}[language=C++]
 %feature("director") NeuronModels::Base; 
 \end{lstlisting}
+%
+By using these directives, GeNN can seamlessly call the Python methods used to implement new neuron and synapse models from C++.
 
 \subsection{PyGeNN}
 \label{sec:methods/pygenn}
