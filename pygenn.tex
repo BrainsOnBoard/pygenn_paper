@@ -614,7 +614,7 @@ All of these systems run Ubuntu 18 apart from the system with the GeForce 1050 T
 Figure~\ref{fig:microcircuit_overheads} shows the simulation times for the full-scale microcircuit model.
 We measured the total simulation time by querying the \lstinline{std::chrono::high_resolution_clock} in C++ and the \lstinline{time.perf_counter} in Python before and after the simulation loop; and used CUDA's own event timing system~\citep[Section~3.2.6.7]{NVIDIACorporation2018} to record the time taken by the neuron and synapse kernels.
 As one might predict, the Jetson Xavier NX is slower than the three desktop GPUs but, considering that it only consumes a maximum of \SI{15}{\watt} compared to \SI{75}{\watt} or \SI{320}{\watt} for the GeForce cards and Titan RTX respectively, it still performs impressively.
-The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using Python and C++ as all GeNN optimisation options are exposed to PyGeNN.
+The time taken to actually simulate the models (`Neuron simulation' and `Synapse simulation') are the same when using PyGeNN and GeNN as all optimisation options are exposed to PyGeNN.
 Interestingly, when simulating \emph{this} model, the larger L1 cache and architectural improvements present in the Turing-based GTX 1650 do not result in significantly improved performance over the Pascal-based GTX 1050Ti.
 Instead, the slightly improved performance of the GTX 1650 can probably be explained by its additional \num{128} CUDA cores.
 
@@ -623,13 +623,13 @@ The `overheads' shown in figure~\ref{fig:microcircuit_overheads} indicate the ti
 Because Python is an interpreted language, updating the spike data structures is somewhat slower and this is particularly noticeable on devices with a slower CPU such as the Jetson Xavier NX.
 However, unlike the desktop GPUs, the Jetson Xavier NX's \SI{8}{\giga\byte} of memory is shared between the GPU and the CPU meaning that data does not need to be copied between their memories and can instead by accessed by both.
 While, using this shared memory for recording spikes reduces the overhead of copying data off the device, because the GPU and CPU caches are not coherent, caching must be disabled on this memory which reduces the performance of the neuron kernel.
-Although the Windows machine has a relatively powerful CPU, the overheads measured in both the Python and C++ simulations run on this system are extremely large due to additional queuing between the application and the GPU driver  caused by the Windows Display Driver Model~(WDDM).
+Although the Windows machine has a relatively powerful CPU, the overheads measured in both the PyGeNN and GeNN simulations run on this system are extremely large due to additional queuing between the application and the GPU driver  caused by the Windows Display Driver Model~(WDDM).
 When small -- in this case \SI{0.1}{\milli\second} -- simulation timesteps are used, this makes per-timestep synchronisation disproportionately expensive.
 
 However, when the spike recording system described in section~\ref{sec:methods/spike_recording} is used, spike data is kept in GPU memory until the end of the simulation and overheads are reduced by up to 10$\times$.
 Because synchronisation with the CPU is no longer required every timestep, simulations run approximately twice as fast on the Windows machine.
 %Intriguingly, the overhead is now identical between Python and C++.
-Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both Python and native C++ versions -- significantly faster than other recently published GPU simulators~\citep{Golosio2021} and even specialised neuromorphic systems~\citep{Rhodes2019}.
+Furthermore, on the high-end desktop GPU, the simulation now runs faster than real-time in both PyGeNN and GeNN versions -- significantly faster than other recently published GPU simulators~\citep{Golosio2021} and even specialised neuromorphic systems~\citep{Rhodes2019}.
 %
 \begin{figure}[t!]
     \begin{center}
@@ -654,9 +654,9 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
     Times are taken from averages calculated over 5 runs of the fastest version of each model i.e. the versions using the GPU recording system.}
     \label{fig:compare_overhead}
 \end{figure}
-
+%
 In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording}.% and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
-These PyGeNN results are compared to a C++ simulation which also uses the recording system. %using both optimizations.
+These PyGeNN results are compared to a GeNN simulation which also uses the recording system. %using both optimizations.
 Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
 Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system still significantly improves the overall performance on all devices -- especially on the Jetson Xavier NX with its slower CPU.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
@@ -672,10 +672,10 @@ As discussed in our previous work~\citep{Knight2018}, these architectural featur
 %Furthermore, due to the additional synchronisation overheads caused by the Windows Display Driver Model~(WDDM) which we discussed in the previous section, offloading stimulus delivery to the GPU improves the performance significantly on the Windows machine.
 %However, on the other devices, it only provides a minimal improvement.
 
-The difference between the speeds of the Python and C++ simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}).
+The difference between the speeds of the PyGeNN and GeNN simulations of the Pavlovian conditioning model~(figure~\ref{fig:izhikevich}) \emph{appear} much larger than those of the microcircuit model~(figure~\ref{fig:microcircuit_overheads}).
 However, as figure~\ref{fig:compare_overhead} illustrates, for individual timesteps the excess time due to overheads is approximately the same for both models and consistent with the cost of a small number of Python to C++ function calls~\citep{Crail2019}.
 Depending on the size and complexity of the model as well as the hardware used, this overhead may or may not be important.
-For example, when simulating the microcircuit model for \SI{1}{\second} on the Titan RTX, the overhead of using Python is less than \SI{0.2}{\percent} but, when simulating the Pavlovian conditioning model on the same device, the overhead of using Python is almost \SI{31}{\percent}.
+For example, when simulating the microcircuit model for \SI{1}{\second} on the Titan RTX, the overhead of using PyGeNN is less than \SI{0.2}{\percent} but, when simulating the Pavlovian conditioning model on the same device, the overhead of using PyGeNN is almost \SI{31}{\percent}.
 
 \section{Discussion}
 In this paper we have introduced PyGeNN, a Python interface to the C++ based GeNN library for GPU accelerated spiking neural network simulations.
