@@ -285,7 +285,7 @@ One solution to these inefficiencies is to store many timesteps worth of spike d
 When a model includes delays, the array of indices and the counter used to store spikes internally are duplicated for each delay `slot'.
 Additional delay slots could be artificially added to the neuron population so that this data structure could be repurposed to store spike data for subsequent recording.
 However, the array containing the indices has an entry for each neuron to handle the worst case where all neurons in the population fire simultaneously, meaning that while this data structure is ideal for efficient spike propagation, using it to store many timesteps worth of spikes would be very wasteful of memory.
-At low firing rates, the most memory efficient solution would be to simply store the indices of neurons which spiked each timestep, for example in a data structure similar to a Yale sparse matrix with each `row' representing a timestep~\todo{cite}.
+At low firing rates, the most memory efficient solution would be to simply store the indices of neurons which spiked each timestep, for example in a data structure similar to a Yale sparse matrix with each `row' representing a timestep~\citep{eisenstat1977yale}.
 However, not only would the efficiency of this approach rely on GeNN \emph{only} being used for models with biologically-plausible firing rates, but the amount of memory required to store the spikes for a given number of timesteps could not be determined ahead of time.
 In a CPU-based simulator, this would not be problematic as additional memory could be allocated as required.
 However, the fine grained global synchronisation this would require would not be easily achievable on a GPU.
