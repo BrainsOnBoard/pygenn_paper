@@ -260,7 +260,7 @@ The behaviour of the model is then defined using a number of code strings.
 Unlike in tools like Brian 2~\citep{Stimberg2019}, these code strings are specified in a C-like language rather than using differential equations.
 This language provides standard C control flow statements as well as the transcendental functions from the standard maths library.
 Additionally, variables provided by GeNN such as the membrane voltage in the model above can be accessed using the \lstinline{$(V)} syntax and functions provided by GeNN can be called using the \lstinline{$(F, 1, 2)} syntax (where \lstinline{F} is a 2 argument function).
-This allows expert users to choose their own solver for models described in terms of differential equations and to programatically define models such as spike sources.
+Using C-like code strings allows expert users to choose their own solver for models described in terms of differential equations and to programatically define models such as spike sources.
 For example, in the model presented above, we chose to implement the neuron using the idiosyncratic forward Euler integration scheme employed by \citet{Izhikevich2003a}.
 Finally, the \lstinline{threshold_condition_code} expression defines \emph{when} the neuron will spike whereas the \lstinline{reset_code} code string defines how the state variables should be reset after a spike.
 %
