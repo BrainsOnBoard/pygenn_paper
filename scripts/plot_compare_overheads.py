@@ -75,7 +75,7 @@ izk_bars = axis.bar(bar_x[1::group_size], experiment_differences[1], bar_width, 
 # Configure axis
 axis.set_xticks(group_x)
 axis.set_xticklabels(devices, ha="center")
-axis.set_ylabel(r"Python overhead per-timestep [$\mu$ s]")
+axis.set_ylabel(r"PyGeNN overhead per-timestep [$\mu$ s]")
 
 # Remove axis junk
 sns.despine(ax=axis)

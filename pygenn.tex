@@ -650,13 +650,13 @@ However, after \SI{1}{\hour} of simulation, the response to the CS becomes much 
     \begin{center}
         \includegraphics{figures/compare_overhead.eps}
     \end{center}
-    \caption{Comparison of the duration of individual timestep in Python and C++ simulation in microcircuit and Pavlovian conditioning experiments.
-    Times are taken from averages calculated over 5 runs of the fastest version of each model i.e. the versions using the GPU recording system.}
+    \caption{Comparison of the duration of individual timestep in PyGeNN and GeNN simulation in microcircuit and Pavlovian conditioning experiments.
+    Times are taken from averages calculated over 5 runs using the GPU recording system.}
     \label{fig:compare_overhead}
 \end{figure}
 %
-In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording}.% and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}. 
-These PyGeNN results are compared to a GeNN simulation which also uses the recording system. %using both optimizations.
+In figure~\ref{fig:izhikevich}, we show the runtime performance of simulations of the Pavlovian conditioning model, running on the GPUs described above using PyGeNN with and without the recording system described in section~\ref{sec:methods/spike_recording}.% and the optimized stimulus-delivery described in section~\ref{sec:methods/izhikevich}.
+These PyGeNN results are compared to a GeNN simulation which also uses the recording system.
 Because each simulation timestep only takes a few \si{\micro\second}, the overhead of using CUDA timing events significantly alters the performance so, for this model, we only measure the duration of the simulation loop using the approaches described in the previous section.
 Although we only record the spiking activity during the first and last \SI{50}{\second}, using the recording system still significantly improves the overall performance on all devices -- especially on the Jetson Xavier NX with its slower CPU.
 Interestingly the Titan RTX and GTX 1650 perform identically in this benchmark with speedups ranging from $62\times$ to $72\times$ real-time.
@@ -721,7 +721,7 @@ Without them, this and many other exciting Neuroinformatics projects would not b
 
 \section*{Data Availability Statement}
 All models, data and analysis scripts used for this study can be found in \url{https://github.com/BrainsOnBoard/pygenn_paper}.
-All experiments were carried out using the GeNN 4.4.0 which is available from \url{https://doi.org/10.5281/zenodo.4419159}.
+All experiments were carried out using the GeNN 4.4.0 which is fully open source and available from \url{https://doi.org/10.5281/zenodo.4419159}.
 % Please see the availability of data guidelines for more information, at https://www.frontiersin.org/about/author-guidelines#AvailabilityofData
 
 \bibliographystyle{frontiersinSCNS_ENG_HUMS} % for Science, Engineering and Humanities and Social Sciences articles, for Humanities and Social Sciences articles please include page numbers in the in-text citations

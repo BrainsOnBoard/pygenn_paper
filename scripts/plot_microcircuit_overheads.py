@@ -17,7 +17,7 @@ def autolabel(axis, rects, labels):
 # Names and algorithms - could extract them from CSV but it's a ball-ache
 devices = ["GeForce\nGTX 1650", "Jetson\nXavier NX", "Titan\nRTX", "Geforce\nGTX 1050 Ti"]
 
-languages = ["Python", "C++"]
+languages = ["PyGeNN", "GeNN"]
 recording_method = ["CPU", "GPU"]
 
 # Import data

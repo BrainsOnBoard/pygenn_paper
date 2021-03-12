@@ -8,7 +8,7 @@ from six import iterkeys, itervalues
 
 # Names and algorithms - could extract them from CSV but it's a ball-ache
 devices = ["GeForce\nGTX 1650\nLinux", "Jetson\nXavier NX\nLinux", "Titan\nRTX\nLinux", "Geforce\nGTX 1050 Ti\nWindows"]
-algorithms = ["Python", "Python: GPU recording", "C++: GPU recording"]
+algorithms = ["PyGeNN", "PyGeNN: GPU recording", "GeNN: GPU recording"]
 
 # Import data
 # **NOTE** np.loadtxt doesn't handle empty entries
@@ -64,10 +64,9 @@ sns.despine(ax=axis)
 axis.xaxis.grid(False)
 
 # Show figure legend with devices beneath figure
-fig.legend(legend_actors, algorithms, ncol=3, columnspacing=1.5,
-           frameon=False, loc="lower center")
+fig.legend(legend_actors, algorithms, ncol=2, frameon=False, loc="lower center")
 
-plt.tight_layout(pad=0, rect=[0.0, 0.1, 1.0, 1.0])
+plt.tight_layout(pad=0, rect=[0.0, 0.125, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/izhikevich.eps")
 plt.show()
